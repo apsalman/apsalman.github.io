@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>협동 타워 디펜스 유닛 배치 시뮬 - 압살맨</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .map-section {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .map-container {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #4ecdc4;
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 60px);
+            grid-template-rows: repeat(5, 60px);
+            gap: 2px;
+            margin: 0 auto;
+            width: fit-content;
+        }
+
+        .grid-cell {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .path-cell {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: 2px solid #ff4757;
+        }
+
+        .placement-cell {
+            background: rgba(78, 205, 196, 0.2);
+            border: 2px dashed #4ecdc4;
+            cursor: pointer;
+        }
+
+        .placement-cell:hover {
+            background: rgba(78, 205, 196, 0.4);
+            transform: scale(1.05);
+        }
+
+        .placement-cell.occupied {
+            background: rgba(78, 205, 196, 0.6);
+            border: 2px solid #4ecdc4;
+        }
+
+        .unit-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            cursor: move;
+            transition: transform 0.2s ease;
+        }
+
+        .unit-image:hover {
+            transform: scale(1.1);
+        }
+
+        .units-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .units-container {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #ff6b6b;
+        }
+
+        .units-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .unit-slot {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed #666;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+        }
+
+        .unit-slot:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .unit-slot img {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-save {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .drag-over {
+            background: rgba(78, 205, 196, 0.8) !important;
+            transform: scale(1.1);
+        }
+
+        .dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        h3 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>협동 타워 디펜스 유닛 배치 - 압살맨</h1>
+            <p>유닛을 드래그해서 위치에 배치하세요!</p>
+        </div>
+
+        <div class="main-content">
+            <div class="map-section">
+                <div class="map-container">
+                    <h3>🗺️ 전장 맵</h3>
+                    <div class="map-grid" id="mapGrid">
+                        <!-- 맵 그리드가 여기에 생성됩니다 -->
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-clear" onclick="clearMap()">🗑️ 맵 초기화</button>
+                    <button class="btn btn-save" onclick="saveConfiguration()">💾 설정 저장</button>
+                </div>
+            </div>
+
+            <div class="units-section">
+                <div class="units-container">
+                    <h3>🛡️ 유닛 라이브러리</h3>
+                    <div class="units-grid" id="unitsGrid">
+                        <!-- 유닛들이 여기에 생성됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 맵 패턴 정의 (X: 몬스터 통로, O: 유닛 배치 가능)
+        const mapPattern = [
+            ['X','O','O','O','O','O','X'],
+            ['X','X','X','O','X','X','X'],
+            ['O','O','X','O','X','O','O'],
+            ['O','O','X','O','X','O','O'],
+            ['O','O','X','X','X','O','O']
+        ];
+
+        // 샘플 유닛 이미지들 (GitHub에서 호스팅할 예정)
+        const sampleUnits = [
+            { id: 'archer', name: '궁수', url: 'https://via.placeholder.com/60x60/4ecdc4/ffffff?text=🏹' },
+            { id: 'knight', name: '기사', url: 'https://via.placeholder.com/60x60/ff6b6b/ffffff?text=⚔️' },
+            { id: 'mage', name: '마법사', url: 'https://via.placeholder.com/60x60/9b59b6/ffffff?text=🔮' },
+            { id: 'cannon', name: '대포', url: 'https://via.placeholder.com/60x60/f39c12/ffffff?text=💣' },
+            { id: 'priest', name: '힐러', url: 'https://via.placeholder.com/60x60/2ecc71/ffffff?text=✨' },
+            { id: 'assassin', name: '암살자', url: 'https://via.placeholder.com/60x60/34495e/ffffff?text=🗡️' }
+        ];
+
+        // 맵 상태 저장
+        let mapState = {};
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            initializeUnits();
+        });
+
+        function initializeMap() {
+            const mapGrid = document.getElementById('mapGrid');
+            mapGrid.innerHTML = '';
+
+            mapPattern.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const cellElement = document.createElement('div');
+                    cellElement.className = 'grid-cell';
+                    cellElement.dataset.row = rowIndex;
+                    cellElement.dataset.col = colIndex;
+                    
+                    if (cell === 'X') {
+                        cellElement.classList.add('path-cell');
+                        cellElement.innerHTML = '🛤️';
+                    } else {
+                        cellElement.classList.add('placement-cell');
+                        cellElement.addEventListener('dragover', handleDragOver);
+                        cellElement.addEventListener('drop', handleDrop);
+                        cellElement.addEventListener('dragleave', handleDragLeave);
+                    }
+                    
+                    mapGrid.appendChild(cellElement);
+                });
+            });
+        }
+
+        function initializeUnits() {
+            const unitsGrid = document.getElementById('unitsGrid');
+            
+            sampleUnits.forEach(unit => {
+                const unitSlot = document.createElement('div');
+                unitSlot.className = 'unit-slot';
+                unitSlot.draggable = true;
+                unitSlot.dataset.unitId = unit.id;
+                
+                const img = document.createElement('img');
+                img.src = unit.url;
+                img.alt = unit.name;
+                img.title = unit.name;
+                
+                unitSlot.appendChild(img);
+                unitSlot.addEventListener('dragstart', handleDragStart);
+                
+                unitsGrid.appendChild(unitSlot);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.target.closest('.unit-slot').classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.closest('.unit-slot').dataset.unitId);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const cell = e.currentTarget;
+            cell.classList.remove('drag-over');
+            
+            const unitId = e.dataTransfer.getData('text/plain');
+            const unit = sampleUnits.find(u => u.id === unitId);
+            
+            if (unit && cell.classList.contains('placement-cell')) {
+                // 기존 유닛 제거
+                const existingImg = cell.querySelector('.unit-image');
+                if (existingImg) {
+                    existingImg.remove();
+                }
+                
+                // 새 유닛 배치
+                const img = document.createElement('img');
+                img.src = unit.url;
+                img.alt = unit.name;
+                img.title = unit.name;
+                img.className = 'unit-image';
+                img.draggable = true;
+                
+                // 맵에서 다시 드래그할 수 있게 설정
+                img.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', 'remove');
+                    e.target.style.opacity = '0.5';
+                });
+                
+                cell.appendChild(img);
+                cell.classList.add('occupied');
+                
+                // 맵 상태 저장
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                mapState[`${row}-${col}`] = unit;
+            }
+            
+            // 드래그 상태 초기화
+            document.querySelectorAll('.dragging').forEach(el => {
+                el.classList.remove('dragging');
+            });
+        }
+
+        function clearMap() {
+            const placementCells = document.querySelectorAll('.placement-cell');
+            placementCells.forEach(cell => {
+                cell.innerHTML = '';
+                cell.classList.remove('occupied');
+            });
+            mapState = {};
+        }
+
+        function saveConfiguration() {
+            const config = {
+                mapPattern: mapPattern,
+                units: mapState,
+                timestamp: new Date().toISOString()
+            };
+            
+            // JSON으로 다운로드
+            const dataStr = JSON.stringify(config, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `tower_defense_config_${Date.now()}.json`;
+            link.click();
+            
+            alert('설정이 저장되었습니다! 🎉');
+        }
+    </script>
+</body>
+</html>
