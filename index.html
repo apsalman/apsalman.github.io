@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>협동 타워 디펜스 유닛 배치</title>
+    <title>협동 타워 디펜스 유닛 배치 도구</title>
     <style>
         * {
             margin: 0;
@@ -108,6 +108,11 @@
 
         .unit-image:hover {
             transform: scale(1.1);
+            cursor: pointer;
+        }
+
+        .unit-image:active {
+            transform: scale(0.95);
         }
 
         .units-section {
@@ -186,9 +191,14 @@
             color: white;
         }
 
-        .btn-save:hover {
+        .btn-load {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+
+        .btn-load:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
         }
 
         .drag-over {
@@ -211,8 +221,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>협동 타워 디펜스 유닛 배치</h1>
-            <p>유닛을 드래그해서 위치에 배치하세요!</p>
+            <h1>협동 타워 디펜스 유닛 배치 도구</h1>
+            <p>by 압살맨</p>
         </div>
 
         <div class="main-content">
@@ -227,12 +237,14 @@
                 <div class="controls">
                     <button class="btn btn-clear" onclick="clearMap()">🗑️ 맵 초기화</button>
                     <button class="btn btn-save" onclick="saveConfiguration()">💾 설정 저장</button>
+                    <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadConfiguration(event)">
+                    <button class="btn btn-load" onclick="document.getElementById('fileInput').click()">📁 설정 불러오기</button>
                 </div>
             </div>
 
             <div class="units-section">
                 <div class="units-container">
-                    <h3>🛡️ 유닛</h3>
+                    <h3>🛡️ 유닛 라이브러리</h3>
                     <div class="units-grid" id="unitsGrid">
                         <!-- 유닛들이 여기에 생성됩니다 -->
                     </div>
@@ -251,7 +263,9 @@
             ['O','O','X','X','X','O','O']
         ];
 
-        // 유닛 이미지들
+        // GitHub Pages에서 호스팅되는 유닛 이미지들
+        const GITHUB_PAGES = 'https://apsalman.github.io';
+        
         const sampleUnits = [
             { id: 'oni', name: '검귀', url: 'https://apsalman.github.io/images/units/검귀.png' },
             { id: 'goblin', name: '고블린폭주족', url: 'https://apsalman.github.io/images/units/고블린.png' },
@@ -350,7 +364,63 @@
             const cell = e.currentTarget;
             cell.classList.remove('drag-over');
             
-            const unitId = e.dataTransfer.getData('text/plain');
+            const dragData = e.dataTransfer.getData('text/plain');
+            
+            // 맵에서 유닛을 제거하는 경우
+            if (dragData === 'remove') {
+                const existingImg = cell.querySelector('.unit-image');
+                if (existingImg) {
+                    existingImg.remove();
+                    cell.classList.remove('occupied');
+                    
+                    // 맵 상태에서 제거
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    delete mapState[`${row}-${col}`];
+                }
+                return;
+            }
+
+            // 맵에서 맵으로 유닛 이동하는 경우
+            if (dragData.startsWith('move-')) {
+                const [, fromRow, fromCol] = dragData.split('-');
+                const fromCell = document.querySelector(`[data-row="${fromRow}"][data-col="${fromCol}"]`);
+                const movingImg = fromCell.querySelector('.unit-image');
+                
+                if (movingImg && cell.classList.contains('placement-cell')) {
+                    // 목적지에 기존 유닛이 있으면 제거
+                    const existingImg = cell.querySelector('.unit-image');
+                    if (existingImg) {
+                        existingImg.remove();
+                    }
+                    
+                    // 원래 위치에서 제거
+                    fromCell.classList.remove('occupied');
+                    delete mapState[`${fromRow}-${fromCol}`];
+                    
+                    // 새 위치에 배치
+                    const newImg = movingImg.cloneNode(true);
+                    setupUnitEvents(newImg);
+                    cell.appendChild(newImg);
+                    cell.classList.add('occupied');
+                    
+                    // 원래 이미지 제거
+                    movingImg.remove();
+                    
+                    // 맵 상태 업데이트
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const unitId = newImg.alt;
+                    const unit = sampleUnits.find(u => u.name === unitId);
+                    if (unit) {
+                        mapState[`${row}-${col}`] = unit;
+                    }
+                }
+                return;
+            }
+            
+            // 유닛 라이브러리에서 새 유닛 배치하는 경우
+            const unitId = dragData;
             const unit = sampleUnits.find(u => u.id === unitId);
             
             if (unit && cell.classList.contains('placement-cell')) {
@@ -366,13 +436,8 @@
                 img.alt = unit.name;
                 img.title = unit.name;
                 img.className = 'unit-image';
-                img.draggable = true;
                 
-                // 맵에서 다시 드래그할 수 있게 설정
-                img.addEventListener('dragstart', function(e) {
-                    e.dataTransfer.setData('text/plain', 'remove');
-                    e.target.style.opacity = '0.5';
-                });
+                setupUnitEvents(img);
                 
                 cell.appendChild(img);
                 cell.classList.add('occupied');
@@ -386,6 +451,46 @@
             // 드래그 상태 초기화
             document.querySelectorAll('.dragging').forEach(el => {
                 el.classList.remove('dragging');
+                el.style.opacity = '';
+            });
+        }
+
+        function setupUnitEvents(img) {
+            img.draggable = true;
+            
+            // 드래그 이벤트
+            img.addEventListener('dragstart', function(e) {
+                const cell = e.target.closest('.placement-cell');
+                const row = cell.dataset.row;
+                const col = cell.dataset.col;
+                
+                e.dataTransfer.setData('text/plain', `move-${row}-${col}`);
+                e.target.style.opacity = '0.5';
+                e.target.closest('.unit-slot, .placement-cell').classList.add('dragging');
+            });
+            
+            img.addEventListener('dragend', function(e) {
+                e.target.style.opacity = '';
+                e.target.closest('.unit-slot, .placement-cell')?.classList.remove('dragging');
+            });
+            
+            // 클릭으로 삭제 이벤트
+            img.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (confirm('이 유닛을 삭제하시겠습니까?')) {
+                    const cell = e.target.closest('.placement-cell');
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    // 유닛 제거
+                    e.target.remove();
+                    cell.classList.remove('occupied');
+                    
+                    // 맵 상태에서 제거
+                    delete mapState[`${row}-${col}`];
+                }
             });
         }
 
@@ -402,7 +507,8 @@
             const config = {
                 mapPattern: mapPattern,
                 units: mapState,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                version: '1.0'
             };
             
             // JSON으로 다운로드
@@ -415,6 +521,66 @@
             link.click();
             
             alert('설정이 저장되었습니다! 🎉');
+        }
+
+        function loadConfiguration(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    
+                    // 설정 유효성 검사
+                    if (!config.units || !config.mapPattern) {
+                        throw new Error('잘못된 설정 파일입니다.');
+                    }
+
+                    // 맵 패턴 검사 (기본 패턴과 일치하는지)
+                    if (JSON.stringify(config.mapPattern) !== JSON.stringify(mapPattern)) {
+                        if (!confirm('이 설정 파일은 다른 맵 패턴을 사용합니다. 계속 불러오시겠습니까?')) {
+                            return;
+                        }
+                    }
+
+                    // 기존 맵 초기화
+                    clearMap();
+
+                    // 설정된 유닛들 배치
+                    Object.entries(config.units).forEach(([position, unitData]) => {
+                        const [row, col] = position.split('-').map(Number);
+                        const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                        
+                        if (cell && cell.classList.contains('placement-cell')) {
+                            // 유닛 이미지 생성
+                            const img = document.createElement('img');
+                            img.src = unitData.url;
+                            img.alt = unitData.name;
+                            img.title = unitData.name;
+                            img.className = 'unit-image';
+                            
+                            setupUnitEvents(img);
+                            
+                            cell.appendChild(img);
+                            cell.classList.add('occupied');
+                        }
+                    });
+
+                    // 맵 상태 업데이트
+                    mapState = { ...config.units };
+                    
+                    alert(`설정을 성공적으로 불러왔습니다! 🎉\n저장 시간: ${new Date(config.timestamp).toLocaleString()}`);
+                    
+                } catch (error) {
+                    alert('설정 파일을 읽는 중 오류가 발생했습니다: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+            
+            // 파일 input 초기화 (같은 파일을 다시 선택할 수 있도록)
+            event.target.value = '';
         }
     </script>
 </body>
