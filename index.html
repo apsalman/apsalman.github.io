@@ -251,6 +251,11 @@
             color: white;
         }
 
+        .btn-image {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
         .btn-delete {
             background: linear-gradient(45deg, #e74c3c, #c0392b);
             color: white;
@@ -365,6 +370,7 @@
                     <button class="btn btn-save" onclick="saveConfiguration()">💾 설정 저장</button>
                     <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadConfiguration(event)">
                     <button class="btn btn-load" onclick="document.getElementById('fileInput').click()">📁 설정 불러오기</button>
+                    <button class="btn btn-image" onclick="exportAsImage()">🖼️ 이미지 저장</button>
                 </div>
             </div>
 
@@ -693,6 +699,312 @@
             
             reader.readAsText(file);
             event.target.value = '';
+        }
+
+        // 이미지 내보내기 기능
+        async function exportAsImage() {
+            try {
+                // 캔버스 생성
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 캔버스 크기 설정 (고해상도)
+                const cellSize = 120;
+                const padding = 40;
+                const titleHeight = 80;
+                const gridWidth = 7 * cellSize;
+                const gridHeight = 5 * cellSize;
+                
+                canvas.width = gridWidth + (padding * 2);
+                canvas.height = gridHeight + (padding * 2) + titleHeight;
+                
+                // 배경 그리기
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#1a1a2e');
+                gradient.addColorStop(0.5, '#16213e');
+                gradient.addColorStop(1, '#0f3460');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 제목 그리기
+                ctx.fillStyle = '#4ecdc4';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('협동 타워 디펜스 유닛 배치', canvas.width / 2, 35);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Arial';
+                ctx.fillText('by 압살맨', canvas.width / 2, 60);
+                
+                // 맵 그리드 그리기
+                const startX = padding;
+                const startY = titleHeight + padding;
+                
+                for (let row = 0; row < mapPattern.length; row++) {
+                    for (let col = 0; col < mapPattern[row].length; col++) {
+                        const x = startX + (col * cellSize);
+                        const y = startY + (row * cellSize);
+                        
+                        // 셀 배경 그리기
+                        ctx.strokeStyle = '#4ecdc4';
+                        ctx.lineWidth = 2;
+                        
+                        if (mapPattern[row][col] === 'X') {
+                            // 경로 셀
+                            const pathGradient = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
+                            pathGradient.addColorStop(0, '#ff6b6b');
+                            pathGradient.addColorStop(1, '#ff8e53');
+                            ctx.fillStyle = pathGradient;
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.strokeRect(x, y, cellSize, cellSize);
+                            
+                            // 경로 아이콘
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = '32px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('🛤️', x + cellSize/2, y + cellSize/2);
+                        } else {
+                            // 배치 가능 셀
+                            ctx.fillStyle = 'rgba(78, 205, 196, 0.2)';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.setLineDash([5, 5]);
+                            ctx.strokeRect(x, y, cellSize, cellSize);
+                            ctx.setLineDash([]);
+                            
+                            // 유닛이 배치된 경우
+                            const unitData = mapState[`${row}-${col}`];
+                            if (unitData) {
+                                // 배치된 셀 배경
+                                ctx.fillStyle = 'rgba(78, 205, 196, 0.6)';
+                                ctx.fillRect(x, y, cellSize, cellSize);
+                                ctx.strokeStyle = '#4ecdc4';
+                                ctx.strokeRect(x, y, cellSize, cellSize);
+                                
+                                // 유닛 이미지 로드 및 그리기
+                                await drawUnitImage(ctx, unitData.url, x + 10, y + 10, cellSize - 20, cellSize - 20);
+                            }
+                        }
+                    }
+                }
+                
+                // 현재 날짜/시간 추가
+                ctx.fillStyle = '#cccccc';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(new Date().toLocaleString(), canvas.width - 10, canvas.height - 10);
+                
+                // 이미지로 변환하여 다운로드
+                const link = document.createElement('a');
+                link.download = `tower_defense_map_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                alert('맵 이미지가 저장되었습니다! 🎉');
+                
+            } catch (error) {
+                console.error('이미지 생성 중 오류:', error);
+                alert('이미지 생성 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+        
+        // 유닛 이미지를 캔버스에 그리는 함수
+        function drawUnitImage(ctx, imageUrl, x, y, width, height) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // CORS 설정
+                
+                img.onload = function() {
+                    try {
+                        // 이미지 그리기
+                        ctx.drawImage(img, x, y, width, height);
+                        
+                        // 유닛 이름 텍스트 (이미지 하단에)
+                        const unitData = sampleUnits.find(u => u.url === imageUrl);
+                        if (unitData) {
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                            ctx.fillRect(x, y + height - 25, width, 25);
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 14px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(unitData.name, x + width/2, y + height - 12.5);
+                        }
+                        
+                        resolve();
+                    } catch (error) {
+                        console.warn('이미지 그리기 실패:', imageUrl);
+                        resolve(); // 실패해도 계속 진행
+                    }
+                };
+                
+                img.onerror = function() {
+                    console.warn('이미지 로드 실패:', imageUrl);
+                    // 이미지 로드 실패 시 대체 텍스트
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('?', x + width/2, y + height/2);
+                    resolve();
+                };
+                
+                img.src = imageUrl;
+            });
+        }
+
+        // 이미지 내보내기 기능
+        async function exportAsImage() {
+            try {
+                // 캔버스 생성
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 캔버스 크기 설정 (고해상도)
+                const cellSize = 120;
+                const padding = 40;
+                const titleHeight = 80;
+                const gridWidth = 7 * cellSize;
+                const gridHeight = 5 * cellSize;
+                
+                canvas.width = gridWidth + (padding * 2);
+                canvas.height = gridHeight + (padding * 2) + titleHeight;
+                
+                // 배경 그리기
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#1a1a2e');
+                gradient.addColorStop(0.5, '#16213e');
+                gradient.addColorStop(1, '#0f3460');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 제목 그리기
+                ctx.fillStyle = '#4ecdc4';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('협동 타워 디펜스 유닛 배치', canvas.width / 2, 35);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Arial';
+                ctx.fillText('by 압살맨', canvas.width / 2, 60);
+                
+                // 맵 그리드 그리기
+                const startX = padding;
+                const startY = titleHeight + padding;
+                
+                for (let row = 0; row < mapPattern.length; row++) {
+                    for (let col = 0; col < mapPattern[row].length; col++) {
+                        const x = startX + (col * cellSize);
+                        const y = startY + (row * cellSize);
+                        
+                        // 셀 배경 그리기
+                        ctx.strokeStyle = '#4ecdc4';
+                        ctx.lineWidth = 2;
+                        
+                        if (mapPattern[row][col] === 'X') {
+                            // 경로 셀
+                            const pathGradient = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
+                            pathGradient.addColorStop(0, '#ff6b6b');
+                            pathGradient.addColorStop(1, '#ff8e53');
+                            ctx.fillStyle = pathGradient;
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.strokeRect(x, y, cellSize, cellSize);
+                            
+                            // 경로 아이콘
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = '32px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('🛤️', x + cellSize/2, y + cellSize/2);
+                        } else {
+                            // 배치 가능 셀
+                            ctx.fillStyle = 'rgba(78, 205, 196, 0.2)';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.setLineDash([5, 5]);
+                            ctx.strokeRect(x, y, cellSize, cellSize);
+                            ctx.setLineDash([]);
+                            
+                            // 유닛이 배치된 경우
+                            const unitData = mapState[`${row}-${col}`];
+                            if (unitData) {
+                                // 배치된 셀 배경
+                                ctx.fillStyle = 'rgba(78, 205, 196, 0.6)';
+                                ctx.fillRect(x, y, cellSize, cellSize);
+                                ctx.strokeStyle = '#4ecdc4';
+                                ctx.strokeRect(x, y, cellSize, cellSize);
+                                
+                                // 유닛 이미지 로드 및 그리기
+                                await drawUnitImage(ctx, unitData.url, x + 10, y + 10, cellSize - 20, cellSize - 20);
+                            }
+                        }
+                    }
+                }
+                
+                // 현재 날짜/시간 추가
+                ctx.fillStyle = '#cccccc';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(new Date().toLocaleString(), canvas.width - 10, canvas.height - 10);
+                
+                // 이미지로 변환하여 다운로드
+                const link = document.createElement('a');
+                link.download = `tower_defense_map_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                alert('맵 이미지가 저장되었습니다! 🎉');
+                
+            } catch (error) {
+                console.error('이미지 생성 중 오류:', error);
+                alert('이미지 생성 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+        
+        // 유닛 이미지를 캔버스에 그리는 함수
+        function drawUnitImage(ctx, imageUrl, x, y, width, height) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // CORS 설정
+                
+                img.onload = function() {
+                    try {
+                        // 이미지 그리기
+                        ctx.drawImage(img, x, y, width, height);
+                        
+                        // 유닛 이름 텍스트 (이미지 하단에)
+                        const unitData = sampleUnits.find(u => u.url === imageUrl);
+                        if (unitData) {
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                            ctx.fillRect(x, y + height - 25, width, 25);
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 14px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(unitData.name, x + width/2, y + height - 12.5);
+                        }
+                        
+                        resolve();
+                    } catch (error) {
+                        console.warn('이미지 그리기 실패:', imageUrl);
+                        resolve(); // 실패해도 계속 진행
+                    }
+                };
+                
+                img.onerror = function() {
+                    console.warn('이미지 로드 실패:', imageUrl);
+                    // 이미지 로드 실패 시 대체 텍스트
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('?', x + width/2, y + height/2);
+                    resolve();
+                };
+                
+                img.src = imageUrl;
+            });
         }
     </script>
 </body>
