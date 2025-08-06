@@ -9,6 +9,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -16,7 +17,9 @@
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             color: white;
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .container {
@@ -26,70 +29,98 @@
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 1.8em;
+            margin-bottom: 5px;
             background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
+        .mode-selector {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .mode-btn:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ccc;
+        }
+
         .main-content {
             display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .map-section {
-            flex: 1;
-            min-width: 400px;
+            order: 1;
         }
 
         .map-container {
             background: rgba(0, 0, 0, 0.3);
-            padding: 20px;
+            padding: 15px;
             border-radius: 15px;
             border: 2px solid #4ecdc4;
         }
 
         .map-grid {
             display: grid;
-            grid-template-columns: repeat(7, 60px);
-            grid-template-rows: repeat(5, 60px);
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(5, 1fr);
             gap: 2px;
             margin: 0 auto;
-            width: fit-content;
+            max-width: 420px;
+            aspect-ratio: 7/5;
         }
 
         .grid-cell {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            min-height: 50px;
         }
 
         .path-cell {
             background: linear-gradient(45deg, #ff6b6b, #ff8e53);
             border: 2px solid #ff4757;
+            font-size: 1.2em;
         }
 
         .placement-cell {
             background: rgba(78, 205, 196, 0.2);
             border: 2px dashed #4ecdc4;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
-        .placement-cell:hover {
+        .placement-cell:active {
             background: rgba(78, 205, 196, 0.4);
-            transform: scale(1.05);
+            transform: scale(0.95);
         }
 
         .placement-cell.occupied {
@@ -97,93 +128,117 @@
             border: 2px solid #4ecdc4;
         }
 
+        .placement-cell.selected {
+            background: rgba(255, 255, 0, 0.4);
+            border: 2px solid #ffff00;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
         .unit-image {
-            width: 50px;
-            height: 50px;
-            border-radius: 6px;
+            width: 90%;
+            height: 90%;
+            border-radius: 4px;
             object-fit: cover;
-            cursor: move;
-            transition: transform 0.2s ease;
-        }
-
-        .unit-image:hover {
-            transform: scale(1.1);
-            cursor: pointer;
-        }
-
-        .unit-image:active {
-            transform: scale(0.95);
+            pointer-events: none;
         }
 
         .units-section {
-            flex: 1;
-            min-width: 300px;
+            order: 2;
         }
 
         .units-container {
             background: rgba(0, 0, 0, 0.3);
-            padding: 20px;
+            padding: 15px;
             border-radius: 15px;
             border: 2px solid #ff6b6b;
         }
 
+        .selected-unit {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .selected-unit img {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+        }
+
         .units-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
         }
 
         .unit-slot {
-            width: 70px;
-            height: 70px;
+            aspect-ratio: 1;
             background: rgba(255, 255, 255, 0.1);
-            border: 2px dashed #666;
+            border: 2px solid #666;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: grab;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
         }
 
-        .unit-slot:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+        .unit-slot:active {
+            transform: scale(0.9);
+        }
+
+        .unit-slot.selected {
+            border: 2px solid #ffff00;
+            background: rgba(255, 255, 0, 0.2);
         }
 
         .unit-slot img {
-            width: 60px;
-            height: 60px;
-            border-radius: 6px;
+            width: 90%;
+            height: 90%;
+            border-radius: 4px;
             object-fit: cover;
         }
 
         .controls {
-            margin: 20px 0;
+            margin: 15px 0;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 25px;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 12px;
             transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
         }
 
         .btn-clear {
             background: linear-gradient(45deg, #ff6b6b, #ff8e53);
             color: white;
-        }
-
-        .btn-clear:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
         }
 
         .btn-save {
@@ -196,25 +251,88 @@
             color: white;
         }
 
-        .btn-load:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
-        }
-
-        .drag-over {
-            background: rgba(78, 205, 196, 0.8) !important;
-            transform: scale(1.1);
-        }
-
-        .dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
+        .btn-delete {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
         }
 
         h3 {
             color: #4ecdc4;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-align: center;
+            font-size: 1.1em;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* 데스크톱에서는 더 큰 크기로 */
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+            }
+            
+            .main-content {
+                flex-direction: row;
+                gap: 30px;
+            }
+            
+            .map-section {
+                flex: 1;
+                min-width: 400px;
+                order: 0;
+            }
+            
+            .units-section {
+                flex: 1;
+                min-width: 300px;
+                order: 1;
+            }
+            
+            .map-container, .units-container {
+                padding: 20px;
+            }
+            
+            .map-grid {
+                grid-template-columns: repeat(7, 60px);
+                grid-template-rows: repeat(5, 60px);
+                max-width: none;
+            }
+            
+            .grid-cell {
+                min-height: 60px;
+            }
+            
+            .units-grid {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            
+            .mode-btn {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+            
+            h3 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
         }
     </style>
 </head>
@@ -225,10 +343,18 @@
             <p>by 압살맨</p>
         </div>
 
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="place">🏗️ 배치 모드</button>
+            <button class="mode-btn" data-mode="delete">🗑️ 삭제 모드</button>
+        </div>
+
         <div class="main-content">
             <div class="map-section">
                 <div class="map-container">
                     <h3>🗺️ 맵</h3>
+                    <div class="instructions" id="instructions">
+                        유닛을 선택한 후 맵을 터치하여 배치하세요
+                    </div>
                     <div class="map-grid" id="mapGrid">
                         <!-- 맵 그리드가 여기에 생성됩니다 -->
                     </div>
@@ -245,6 +371,11 @@
             <div class="units-section">
                 <div class="units-container">
                     <h3>🛡️ 유닛 라이브러리</h3>
+                    
+                    <div class="selected-unit" id="selectedUnit">
+                        <div style="color: #ccc;">유닛을 선택하세요</div>
+                    </div>
+                    
                     <div class="units-grid" id="unitsGrid">
                         <!-- 유닛들이 여기에 생성됩니다 -->
                     </div>
@@ -289,14 +420,48 @@
             { id: 'destr', name: '파괴자', url: 'https://apsalman.github.io/images/units/파괴자.png' }
         ];
 
-        // 맵 상태 저장
+        // 게임 상태
         let mapState = {};
+        let selectedUnit = null;
+        let currentMode = 'place';
 
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
             initializeMap();
             initializeUnits();
+            initializeModeSelector();
+            
+            // 터치 이벤트를 위한 설정
+            document.addEventListener('touchstart', function() {}, { passive: true });
         });
+
+        function initializeModeSelector() {
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    modeButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentMode = this.dataset.mode;
+                    updateInstructions();
+                    
+                    // 모드 변경 시 선택 해제
+                    if (currentMode === 'delete') {
+                        clearSelection();
+                    }
+                });
+            });
+        }
+
+        function updateInstructions() {
+            const instructions = document.getElementById('instructions');
+            if (currentMode === 'place') {
+                instructions.textContent = selectedUnit ? 
+                    `${selectedUnit.name}을(를) 배치할 위치를 터치하세요` : 
+                    '유닛을 선택한 후 맵을 터치하여 배치하세요';
+            } else {
+                instructions.textContent = '삭제할 유닛을 터치하세요';
+            }
+        }
 
         function initializeMap() {
             const mapGrid = document.getElementById('mapGrid');
@@ -314,9 +479,8 @@
                         cellElement.innerHTML = '🛤️';
                     } else {
                         cellElement.classList.add('placement-cell');
-                        cellElement.addEventListener('dragover', handleDragOver);
-                        cellElement.addEventListener('drop', handleDrop);
-                        cellElement.addEventListener('dragleave', handleDragLeave);
+                        cellElement.addEventListener('click', handleCellClick);
+                        cellElement.addEventListener('touchend', handleCellTouch);
                     }
                     
                     mapGrid.appendChild(cellElement);
@@ -330,7 +494,6 @@
             sampleUnits.forEach(unit => {
                 const unitSlot = document.createElement('div');
                 unitSlot.className = 'unit-slot';
-                unitSlot.draggable = true;
                 unitSlot.dataset.unitId = unit.id;
                 
                 const img = document.createElement('img');
@@ -339,168 +502,128 @@
                 img.title = unit.name;
                 
                 unitSlot.appendChild(img);
-                unitSlot.addEventListener('dragstart', handleDragStart);
+                unitSlot.addEventListener('click', () => selectUnit(unit));
+                unitSlot.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    selectUnit(unit);
+                });
                 
                 unitsGrid.appendChild(unitSlot);
             });
         }
 
-        function handleDragStart(e) {
-            e.target.closest('.unit-slot').classList.add('dragging');
-            e.dataTransfer.setData('text/plain', e.target.closest('.unit-slot').dataset.unitId);
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
-        }
-
-        function handleDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            const cell = e.currentTarget;
-            cell.classList.remove('drag-over');
+        function selectUnit(unit) {
+            if (currentMode !== 'place') return;
             
-            const dragData = e.dataTransfer.getData('text/plain');
+            selectedUnit = unit;
             
-            // 맵에서 유닛을 제거하는 경우
-            if (dragData === 'remove') {
+            // 모든 유닛 슬롯에서 선택 상태 제거
+            document.querySelectorAll('.unit-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            
+            // 선택된 유닛 슬롯 표시
+            const unitSlot = document.querySelector(`[data-unit-id="${unit.id}"]`);
+            if (unitSlot) {
+                unitSlot.classList.add('selected');
+            }
+            
+            // 선택된 유닛 표시 업데이트
+            const selectedUnitDiv = document.getElementById('selectedUnit');
+            selectedUnitDiv.innerHTML = `
+                <img src="${unit.url}" alt="${unit.name}">
+                <div>${unit.name}</div>
+            `;
+            
+            updateInstructions();
+        }
+
+        function clearSelection() {
+            selectedUnit = null;
+            
+            document.querySelectorAll('.unit-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            
+            const selectedUnitDiv = document.getElementById('selectedUnit');
+            selectedUnitDiv.innerHTML = '<div style="color: #ccc;">유닛을 선택하세요</div>';
+            
+            updateInstructions();
+        }
+
+        function handleCellClick(e) {
+            handleCellInteraction(e.target);
+        }
+
+        function handleCellTouch(e) {
+            e.preventDefault();
+            handleCellInteraction(e.target);
+        }
+
+        function handleCellInteraction(cell) {
+            if (!cell.classList.contains('placement-cell')) return;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            if (currentMode === 'delete') {
+                // 삭제 모드
                 const existingImg = cell.querySelector('.unit-image');
                 if (existingImg) {
                     existingImg.remove();
                     cell.classList.remove('occupied');
-                    
-                    // 맵 상태에서 제거
-                    const row = parseInt(cell.dataset.row);
-                    const col = parseInt(cell.dataset.col);
                     delete mapState[`${row}-${col}`];
-                }
-                return;
-            }
-
-            // 맵에서 맵으로 유닛 이동하는 경우
-            if (dragData.startsWith('move-')) {
-                const [, fromRow, fromCol] = dragData.split('-');
-                const fromCell = document.querySelector(`[data-row="${fromRow}"][data-col="${fromCol}"]`);
-                const movingImg = fromCell.querySelector('.unit-image');
-                
-                if (movingImg && cell.classList.contains('placement-cell')) {
-                    // 목적지에 기존 유닛이 있으면 제거
-                    const existingImg = cell.querySelector('.unit-image');
-                    if (existingImg) {
-                        existingImg.remove();
-                    }
                     
-                    // 원래 위치에서 제거
-                    fromCell.classList.remove('occupied');
-                    delete mapState[`${fromRow}-${fromCol}`];
-                    
-                    // 새 위치에 배치
-                    const newImg = movingImg.cloneNode(true);
-                    setupUnitEvents(newImg);
-                    cell.appendChild(newImg);
-                    cell.classList.add('occupied');
-                    
-                    // 원래 이미지 제거
-                    movingImg.remove();
-                    
-                    // 맵 상태 업데이트
-                    const row = parseInt(cell.dataset.row);
-                    const col = parseInt(cell.dataset.col);
-                    const unitId = newImg.alt;
-                    const unit = sampleUnits.find(u => u.name === unitId);
-                    if (unit) {
-                        mapState[`${row}-${col}`] = unit;
+                    // 햅틱 피드백 (지원되는 경우)
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
                     }
                 }
-                return;
-            }
-            
-            // 유닛 라이브러리에서 새 유닛 배치하는 경우
-            const unitId = dragData;
-            const unit = sampleUnits.find(u => u.id === unitId);
-            
-            if (unit && cell.classList.contains('placement-cell')) {
-                // 기존 유닛 제거
+            } else if (currentMode === 'place' && selectedUnit) {
+                // 배치 모드
                 const existingImg = cell.querySelector('.unit-image');
                 if (existingImg) {
                     existingImg.remove();
                 }
                 
-                // 새 유닛 배치
                 const img = document.createElement('img');
-                img.src = unit.url;
-                img.alt = unit.name;
-                img.title = unit.name;
+                img.src = selectedUnit.url;
+                img.alt = selectedUnit.name;
+                img.title = selectedUnit.name;
                 img.className = 'unit-image';
-                
-                setupUnitEvents(img);
                 
                 cell.appendChild(img);
                 cell.classList.add('occupied');
                 
-                // 맵 상태 저장
-                const row = parseInt(cell.dataset.row);
-                const col = parseInt(cell.dataset.col);
-                mapState[`${row}-${col}`] = unit;
-            }
-            
-            // 드래그 상태 초기화
-            document.querySelectorAll('.dragging').forEach(el => {
-                el.classList.remove('dragging');
-                el.style.opacity = '';
-            });
-        }
-
-        function setupUnitEvents(img) {
-            img.draggable = true;
-            
-            // 드래그 이벤트
-            img.addEventListener('dragstart', function(e) {
-                const cell = e.target.closest('.placement-cell');
-                const row = cell.dataset.row;
-                const col = cell.dataset.col;
+                mapState[`${row}-${col}`] = selectedUnit;
                 
-                e.dataTransfer.setData('text/plain', `move-${row}-${col}`);
-                e.target.style.opacity = '0.5';
-                e.target.closest('.unit-slot, .placement-cell').classList.add('dragging');
-            });
-            
-            img.addEventListener('dragend', function(e) {
-                e.target.style.opacity = '';
-                e.target.closest('.unit-slot, .placement-cell')?.classList.remove('dragging');
-            });
-            
-            // 클릭으로 삭제 이벤트
-            img.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (confirm('이 유닛을 삭제하시겠습니까?')) {
-                    const cell = e.target.closest('.placement-cell');
-                    const row = parseInt(cell.dataset.row);
-                    const col = parseInt(cell.dataset.col);
-                    
-                    // 유닛 제거
-                    e.target.remove();
-                    cell.classList.remove('occupied');
-                    
-                    // 맵 상태에서 제거
-                    delete mapState[`${row}-${col}`];
+                // 햅틱 피드백 (지원되는 경우)
+                if (navigator.vibrate) {
+                    navigator.vibrate(30);
                 }
-            });
+                
+                // 시각적 피드백
+                cell.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    cell.style.transform = '';
+                }, 150);
+            }
         }
 
         function clearMap() {
-            const placementCells = document.querySelectorAll('.placement-cell');
-            placementCells.forEach(cell => {
-                cell.innerHTML = '';
-                cell.classList.remove('occupied');
-            });
-            mapState = {};
+            if (confirm('정말로 맵을 초기화하시겠습니까?')) {
+                const placementCells = document.querySelectorAll('.placement-cell');
+                placementCells.forEach(cell => {
+                    cell.innerHTML = '';
+                    cell.classList.remove('occupied');
+                });
+                mapState = {};
+                
+                // 햅틱 피드백
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+            }
         }
 
         function saveConfiguration() {
@@ -511,7 +634,6 @@
                 version: '1.0'
             };
             
-            // JSON으로 다운로드
             const dataStr = JSON.stringify(config, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
             
@@ -532,42 +654,34 @@
                 try {
                     const config = JSON.parse(e.target.result);
                     
-                    // 설정 유효성 검사
                     if (!config.units || !config.mapPattern) {
                         throw new Error('잘못된 설정 파일입니다.');
                     }
 
-                    // 맵 패턴 검사 (기본 패턴과 일치하는지)
                     if (JSON.stringify(config.mapPattern) !== JSON.stringify(mapPattern)) {
                         if (!confirm('이 설정 파일은 다른 맵 패턴을 사용합니다. 계속 불러오시겠습니까?')) {
                             return;
                         }
                     }
 
-                    // 기존 맵 초기화
                     clearMap();
 
-                    // 설정된 유닛들 배치
                     Object.entries(config.units).forEach(([position, unitData]) => {
                         const [row, col] = position.split('-').map(Number);
                         const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
                         
                         if (cell && cell.classList.contains('placement-cell')) {
-                            // 유닛 이미지 생성
                             const img = document.createElement('img');
                             img.src = unitData.url;
                             img.alt = unitData.name;
                             img.title = unitData.name;
                             img.className = 'unit-image';
                             
-                            setupUnitEvents(img);
-                            
                             cell.appendChild(img);
                             cell.classList.add('occupied');
                         }
                     });
 
-                    // 맵 상태 업데이트
                     mapState = { ...config.units };
                     
                     alert(`설정을 성공적으로 불러왔습니다! 🎉\n저장 시간: ${new Date(config.timestamp).toLocaleString()}`);
@@ -578,8 +692,6 @@
             };
             
             reader.readAsText(file);
-            
-            // 파일 input 초기화 (같은 파일을 다시 선택할 수 있도록)
             event.target.value = '';
         }
     </script>
