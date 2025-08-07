@@ -249,6 +249,77 @@
             object-fit: cover;
         }
 
+        /* 배치된 유닛 표시 섹션 */
+        .deployed-units-section {
+            order: 3;
+            margin-top: 10px;
+        }
+
+        .deployed-units-container {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #9b59b6;
+            min-height: 100px;
+        }
+
+        .deployed-units-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            min-height: 60px;
+        }
+
+        .deployed-unit-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            background: rgba(155, 89, 182, 0.2);
+            border: 2px solid #9b59b6;
+            border-radius: 10px;
+            min-width: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .deployed-unit-item:hover {
+            background: rgba(155, 89, 182, 0.4);
+            transform: scale(1.05);
+        }
+
+        .deployed-unit-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+            margin-bottom: 5px;
+        }
+
+        .deployed-unit-name {
+            font-size: 11px;
+            text-align: center;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .deployed-unit-count {
+            font-size: 10px;
+            color: #9b59b6;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-top: 2px;
+        }
+
+        .empty-deployed-message {
+            text-align: center;
+            color: #ccc;
+            font-style: italic;
+            margin: 20px 0;
+        }
+
         .controls {
             margin: 15px 0;
             display: flex;
@@ -309,6 +380,26 @@
             font-size: 1.1em;
         }
 
+        .deployed-units-container h3 {
+            color: #9b59b6;
+        }
+
+        .deployed-units-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .total-units-count {
+            font-size: 14px;
+            color: #9b59b6;
+            background: rgba(155, 89, 182, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #9b59b6;
+        }
+
         .instructions {
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
@@ -345,8 +436,14 @@
                 min-width: 300px;
                 order: 1;
             }
+
+            .deployed-units-section {
+                order: 2;
+                flex: 1;
+                min-width: 300px;
+            }
             
-            .map-container, .units-container {
+            .map-container, .units-container, .deployed-units-container {
                 padding: 20px;
             }
             
@@ -372,6 +469,19 @@
                 grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
                 gap: 10px;
             }
+
+            .deployed-unit-item img {
+                width: 50px;
+                height: 50px;
+            }
+
+            .deployed-unit-name {
+                font-size: 12px;
+            }
+
+            .deployed-unit-count {
+                font-size: 11px;
+            }
             
             .btn {
                 padding: 10px 20px;
@@ -391,6 +501,13 @@
             h3 {
                 font-size: 1.3em;
                 margin-bottom: 15px;
+            }
+        }
+
+        /* 모바일에서 배치된 유닛 섹션 조정 */
+        @media (max-width: 767px) {
+            .deployed-units-section {
+                order: 3;
             }
         }
     </style>
@@ -444,6 +561,18 @@
                     
                     <div class="units-grid" id="unitsGrid">
                         <!-- 유닛들이 여기에 생성됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="deployed-units-section">
+                <div class="deployed-units-container">
+                    <div class="deployed-units-header">
+                        <h3>⚔️ 배치된 유닛</h3>
+                        <div class="total-units-count" id="totalUnitsCount">총 0개</div>
+                    </div>
+                    <div class="deployed-units-grid" id="deployedUnitsGrid">
+                        <div class="empty-deployed-message">아직 배치된 유닛이 없습니다</div>
                     </div>
                 </div>
             </div>
@@ -510,6 +639,70 @@
         let mapState = {};
         let selectedUnit = null;
         let currentMode = 'place';
+
+        // ===== 배치된 유닛 관리 함수들 =====
+        
+        function updateDeployedUnits() {
+            const deployedUnitsGrid = document.getElementById('deployedUnitsGrid');
+            const totalUnitsCount = document.getElementById('totalUnitsCount');
+            
+            // 배치된 유닛들을 카운트
+            const unitCounts = {};
+            let totalUnits = 0;
+            
+            Object.values(mapState).forEach(unit => {
+                totalUnits++;
+                if (unitCounts[unit.id]) {
+                    unitCounts[unit.id].count++;
+                } else {
+                    unitCounts[unit.id] = {
+                        unit: unit,
+                        count: 1
+                    };
+                }
+            });
+            
+            // 총 개수 업데이트
+            totalUnitsCount.textContent = `총 ${totalUnits}개`;
+            
+            // 배치된 유닛이 없는 경우
+            if (Object.keys(unitCounts).length === 0) {
+                deployedUnitsGrid.innerHTML = '<div class="empty-deployed-message">아직 배치된 유닛이 없습니다</div>';
+                return;
+            }
+            
+            // 배치된 유닛들을 표시
+            deployedUnitsGrid.innerHTML = '';
+            
+            // 유닛을 개수가 많은 순서대로 정렬 (같은 개수면 이름순)
+            const sortedUnits = Object.values(unitCounts).sort((a, b) => {
+                if (a.count !== b.count) {
+                    return b.count - a.count; // 개수 내림차순
+                }
+                return a.unit.name.localeCompare(b.unit.name, 'ko'); // 이름 오름차순
+            });
+            
+            sortedUnits.forEach(({ unit, count }) => {
+                const deployedUnitItem = document.createElement('div');
+                deployedUnitItem.className = 'deployed-unit-item';
+                deployedUnitItem.title = `${unit.name} (${count}개 배치됨)`;
+                
+                deployedUnitItem.innerHTML = `
+                    <img src="${unit.url}" alt="${unit.name}">
+                    <div class="deployed-unit-name">${unit.name}</div>
+                    <div class="deployed-unit-count">${count}개</div>
+                `;
+                
+                // 클릭하면 해당 유닛 선택
+                deployedUnitItem.addEventListener('click', () => {
+                    if (currentMode === 'place') {
+                        selectUnit(unit);
+                    }
+                });
+                
+                deployedUnitsGrid.appendChild(deployedUnitItem);
+            });
+        }
 
         // ===== 초간소화 인코딩/디코딩 함수들 =====
         
@@ -694,6 +887,9 @@
                         }
                     });
                     
+                    // 배치된 유닛 표시 업데이트
+                    updateDeployedUnits();
+                    
                     const mapName = mapPatterns[currentMapId]?.name || '알 수 없는 맵';
                     const unitCount = Object.keys(config.units).length;
                     alert(`공유 링크에서 배치도를 불러왔습니다! 🎉\n맵: ${mapName}\n유닛 수: ${unitCount}개`);
@@ -747,6 +943,9 @@
                     
                     // 맵 다시 그리기
                     initializeMap();
+                    
+                    // 배치된 유닛 표시 업데이트
+                    updateDeployedUnits();
                     
                     // 햅틱 피드백
                     if (navigator.vibrate) {
@@ -898,6 +1097,9 @@
                     cell.classList.remove('occupied');
                     delete mapState[`${row}-${col}`];
                     
+                    // 배치된 유닛 표시 업데이트
+                    updateDeployedUnits();
+                    
                     // 햅틱 피드백 (지원되는 경우)
                     if (navigator.vibrate) {
                         navigator.vibrate(50);
@@ -921,6 +1123,9 @@
                 
                 mapState[`${row}-${col}`] = selectedUnit;
                 
+                // 배치된 유닛 표시 업데이트
+                updateDeployedUnits();
+                
                 // 햅틱 피드백 (지원되는 경우)
                 if (navigator.vibrate) {
                     navigator.vibrate(30);
@@ -942,6 +1147,9 @@
                     cell.classList.remove('occupied');
                 });
                 mapState = {};
+                
+                // 배치된 유닛 표시 업데이트
+                updateDeployedUnits();
                 
                 // 햅틱 피드백
                 if (navigator.vibrate) {
@@ -1035,6 +1243,9 @@
 
                     mapState = { ...config.units };
                     
+                    // 배치된 유닛 표시 업데이트
+                    updateDeployedUnits();
+                    
                     alert(`설정을 성공적으로 불러왔습니다! 🎉\n맵: ${mapPatterns[currentMapId].name}\n저장 시간: ${new Date(config.timestamp).toLocaleString()}`);
                     
                 } catch (error) {
@@ -1046,12 +1257,35 @@
             event.target.value = '';
         }
 
-        // 이미지 내보내기 기능
+        // 이미지 내보내기 기능 (배치된 유닛 포함)
         async function exportAsImage() {
             try {
                 // 캔버스 생성
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
+                
+                // 배치된 유닛 정보 계산
+                const unitCounts = {};
+                let totalUnits = 0;
+                
+                Object.values(mapState).forEach(unit => {
+                    totalUnits++;
+                    if (unitCounts[unit.id]) {
+                        unitCounts[unit.id].count++;
+                    } else {
+                        unitCounts[unit.id] = {
+                            unit: unit,
+                            count: 1
+                        };
+                    }
+                });
+                
+                const deployedUnits = Object.values(unitCounts).sort((a, b) => {
+                    if (a.count !== b.count) {
+                        return b.count - a.count; // 개수 내림차순
+                    }
+                    return a.unit.name.localeCompare(b.unit.name, 'ko'); // 이름 오름차순
+                });
                 
                 // 캔버스 크기 설정 (고해상도)
                 const cellSize = 120;
@@ -1060,8 +1294,11 @@
                 const gridWidth = 7 * cellSize;
                 const gridHeight = mapPattern.length * cellSize;
                 
+                // 배치된 유닛 섹션 높이 계산
+                const deployedSectionHeight = deployedUnits.length > 0 ? 200 : 0;
+                
                 canvas.width = gridWidth + (padding * 2);
-                canvas.height = gridHeight + (padding * 2) + titleHeight;
+                canvas.height = gridHeight + (padding * 2) + titleHeight + deployedSectionHeight;
                 
                 // 배경 그리기
                 const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -1133,6 +1370,57 @@
                     }
                 }
                 
+                // 배치된 유닛 섹션 그리기
+                if (deployedUnits.length > 0) {
+                    const deployedStartY = startY + gridHeight + 30;
+                    
+                    // 배치된 유닛 제목과 총 개수
+                    ctx.fillStyle = '#9b59b6';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('⚔️ 배치된 유닛', padding, deployedStartY);
+                    
+                    ctx.fillStyle = '#9b59b6';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`총 ${totalUnits}개`, canvas.width - padding, deployedStartY);
+                    
+                    // 유닛 아이템들 그리기
+                    const itemSize = 80;
+                    const itemSpacing = 20;
+                    const maxItemsPerRow = Math.floor((canvas.width - padding * 2) / (itemSize + itemSpacing));
+                    
+                    for (let i = 0; i < deployedUnits.length; i++) {
+                        const { unit, count } = deployedUnits[i];
+                        const row = Math.floor(i / maxItemsPerRow);
+                        const col = i % maxItemsPerRow;
+                        
+                        const itemX = padding + col * (itemSize + itemSpacing);
+                        const itemY = deployedStartY + 40 + row * (itemSize + 30);
+                        
+                        // 유닛 아이템 배경
+                        ctx.fillStyle = 'rgba(155, 89, 182, 0.3)';
+                        ctx.fillRect(itemX, itemY, itemSize, itemSize);
+                        ctx.strokeStyle = '#9b59b6';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(itemX, itemY, itemSize, itemSize);
+                        
+                        // 유닛 이미지
+                        await drawUnitImageSimple(ctx, unit.url, itemX + 5, itemY + 5, itemSize - 10, itemSize - 30);
+                        
+                        // 유닛 이름
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 10px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(unit.name, itemX + itemSize/2, itemY + itemSize - 15);
+                        
+                        // 유닛 개수
+                        ctx.fillStyle = '#9b59b6';
+                        ctx.font = 'bold 9px Arial';
+                        ctx.fillText(`${count}개`, itemX + itemSize/2, itemY + itemSize - 5);
+                    }
+                }
+                
                 // 현재 날짜/시간 추가
                 ctx.fillStyle = '#cccccc';
                 ctx.font = '12px Arial';
@@ -1153,7 +1441,7 @@
             }
         }
         
-        // 유닛 이미지를 캔버스에 그리는 함수
+        // 유닛 이미지를 캔버스에 그리는 함수 (맵용)
         function drawUnitImage(ctx, imageUrl, x, y, width, height) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -1177,6 +1465,38 @@
                             ctx.fillText(unitData.name, x + width/2, y + height - 12.5);
                         }
                         
+                        resolve();
+                    } catch (error) {
+                        console.warn('이미지 그리기 실패:', imageUrl);
+                        resolve(); // 실패해도 계속 진행
+                    }
+                };
+                
+                img.onerror = function() {
+                    console.warn('이미지 로드 실패:', imageUrl);
+                    // 이미지 로드 실패 시 대체 텍스트
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('?', x + width/2, y + height/2);
+                    resolve();
+                };
+                
+                img.src = imageUrl;
+            });
+        }
+
+        // 유닛 이미지를 캔버스에 그리는 함수 (배치된 유닛용 - 간단 버전)
+        function drawUnitImageSimple(ctx, imageUrl, x, y, width, height) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // CORS 설정
+                
+                img.onload = function() {
+                    try {
+                        // 이미지 그리기
+                        ctx.drawImage(img, x, y, width, height);
                         resolve();
                     } catch (error) {
                         console.warn('이미지 그리기 실패:', imageUrl);
