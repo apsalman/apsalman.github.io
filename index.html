@@ -41,11 +41,6 @@
             background-clip: text;
         }
 
-        .mode-selector {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
         .map-selector {
             text-align: center;
             margin-bottom: 20px;
@@ -71,6 +66,11 @@
         .map-btn:not(.active) {
             background: rgba(255, 255, 255, 0.2);
             color: #ccc;
+        }
+
+        .mode-selector {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         .mode-btn {
@@ -511,6 +511,203 @@
         let selectedUnit = null;
         let currentMode = 'place';
 
+        // ===== 초간소화 인코딩/디코딩 함수들 =====
+        
+        function encodeShareDataCompact(mapId, units) {
+            try {
+                let result = '';
+                
+                // 맵 ID (1자리)
+                result += mapId === 'map1' ? '1' : '2';
+                
+                // 각 유닛을 3자리 코드로 변환: 위치(2자리) + 유닛(1자리)
+                Object.entries(units).forEach(([position, unitData]) => {
+                    const [row, col] = position.split('-').map(Number);
+                    const positionIndex = row * 10 + col; // 00, 01, 02, ..., 10, 11, ...
+                    const unitCode = unitData.code || sampleUnits.find(u => u.id === unitData.id)?.code || 'A';
+                    
+                    result += positionIndex.toString().padStart(2, '0') + unitCode;
+                });
+                
+                return result;
+            } catch (error) {
+                throw new Error('데이터 압축 실패: ' + error.message);
+            }
+        }
+
+        function decodeShareDataCompact(compactData) {
+            try {
+                if (!compactData || compactData.length < 1) {
+                    throw new Error('잘못된 데이터 형식');
+                }
+                
+                // 맵 ID 추출 (첫 1자리)
+                const mapCode = compactData[0];
+                const mapId = mapCode === '1' ? 'map1' : 'map2';
+                
+                // 유닛 데이터 추출 (3자리씩)
+                const units = {};
+                const unitData = compactData.slice(1);
+                
+                for (let i = 0; i < unitData.length; i += 3) {
+                    if (i + 2 >= unitData.length) break;
+                    
+                    const positionCode = unitData.slice(i, i + 2);
+                    const unitCode = unitData[i + 2];
+                    
+                    // 위치 변환
+                    const positionIndex = parseInt(positionCode);
+                    const row = Math.floor(positionIndex / 10);
+                    const col = positionIndex % 10;
+                    const position = `${row}-${col}`;
+                    
+                    // 유닛 찾기
+                    const unit = sampleUnits.find(u => u.code === unitCode);
+                    if (unit) {
+                        units[position] = unit;
+                    }
+                }
+                
+                return { mapId, units };
+            } catch (error) {
+                throw new Error('데이터 압축 해제 실패: ' + error.message);
+            }
+        }
+
+        // ===== 공유 링크 관련 함수들 =====
+
+        function generateShareLink() {
+            if (Object.keys(mapState).length === 0) {
+                alert('배치된 유닛이 없습니다. 유닛을 배치한 후 공유해주세요! 🛡️');
+                return;
+            }
+            
+            try {
+                // 초간소화 인코딩
+                const compactData = encodeShareDataCompact(currentMapId, mapState);
+                
+                // 공유 URL 생성 (매우 짧음)
+                const baseUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${baseUrl}?c=${compactData}`;
+                
+                console.log('간소화된 공유 링크:', shareUrl);
+                console.log('데이터 길이:', compactData.length, '문자');
+                
+                // 클립보드에 복사
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        const mapName = mapPatterns[currentMapId].name;
+                        const unitCount = Object.keys(mapState).length;
+                        alert(`초간소화 공유 링크가 클립보드에 복사되었습니다! 📋\n\n맵: ${mapName}\n유닛 수: ${unitCount}개\n링크 길이: ${shareUrl.length}자\n\n링크를 붙여넣기하여 공유하세요!`);
+                    }).catch(() => {
+                        showShareUrlFallback(shareUrl);
+                    });
+                } else {
+                    showShareUrlFallback(shareUrl);
+                }
+                
+                // 햅틱 피드백
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 100, 50]);
+                }
+                
+            } catch (error) {
+                console.error('공유 링크 생성 오류:', error);
+                alert('공유 링크 생성 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        function showShareUrlFallback(shareUrl) {
+            const mapName = mapPatterns[currentMapId].name;
+            const unitCount = Object.keys(mapState).length;
+            
+            // 임시 텍스트 영역 생성하여 복사
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert(`공유 링크가 복사되었습니다! 📋\n\n맵: ${mapName}\n유닛 수: ${unitCount}개\n링크 길이: ${shareUrl.length}자\n\n링크를 붙여넣기하여 공유하세요!`);
+            } catch (err) {
+                // 복사도 실패한 경우 URL 표시
+                prompt('공유 링크입니다. 복사해서 공유하세요:', shareUrl);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        // ===== URL 로딩 관련 함수들 =====
+
+        function loadFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const compactData = urlParams.get('c'); // 초간소화 버전
+            
+            if (compactData) {
+                try {
+                    const config = decodeShareDataCompact(compactData);
+                    loadShareData(config);
+                } catch (error) {
+                    console.error('간소화 공유 링크 오류:', error);
+                    alert('공유 링크가 올바르지 않습니다. 🚫');
+                }
+            }
+        }
+
+        function loadShareData(config) {
+            // 맵 변경
+            if (config.mapId && mapPatterns[config.mapId]) {
+                currentMapId = config.mapId;
+                mapPattern = mapPatterns[currentMapId].pattern;
+                
+                // 맵 버튼 업데이트
+                document.querySelectorAll('.map-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.map === currentMapId) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            
+            // 유닛 배치 데이터 로드
+            if (config.units) {
+                mapState = { ...config.units };
+                
+                // 페이지 로드 후 유닛 배치
+                setTimeout(() => {
+                    Object.entries(config.units).forEach(([position, unitData]) => {
+                        const [row, col] = position.split('-').map(Number);
+                        const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                        
+                        if (cell && cell.classList.contains('placement-cell')) {
+                            const img = document.createElement('img');
+                            img.src = unitData.url;
+                            img.alt = unitData.name;
+                            img.title = unitData.name;
+                            img.className = 'unit-image';
+                            
+                            cell.appendChild(img);
+                            cell.classList.add('occupied');
+                        }
+                    });
+                    
+                    const mapName = mapPatterns[currentMapId]?.name || '알 수 없는 맵';
+                    const unitCount = Object.keys(config.units).length;
+                    alert(`공유 링크에서 배치도를 불러왔습니다! 🎉\n맵: ${mapName}\n유닛 수: ${unitCount}개`);
+                }, 100);
+            }
+            
+            // URL 정리
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // ===== 초기화 및 이벤트 핸들러 =====
+
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
             // URL 파라미터에서 공유 데이터 확인
@@ -945,341 +1142,6 @@
                 // 이미지로 변환하여 다운로드
                 const link = document.createElement('a');
                 link.download = `tower_defense_${currentMapId}_map_${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                alert('맵 이미지가 저장되었습니다! 🎉');
-                
-            } catch (error) {
-                console.error('이미지 생성 중 오류:', error);
-                alert('이미지 생성 중 오류가 발생했습니다: ' + error.message);
-            }
-        }
-        
-        // 유닛 이미지를 캔버스에 그리는 함수
-        function drawUnitImage(ctx, imageUrl, x, y, width, height) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous'; // CORS 설정
-                
-                img.onload = function() {
-                    try {
-                        // 이미지 그리기
-                        ctx.drawImage(img, x, y, width, height);
-                        
-                        // 유닛 이름 텍스트 (이미지 하단에)
-                        const unitData = sampleUnits.find(u => u.url === imageUrl);
-                        if (unitData) {
-                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                            ctx.fillRect(x, y + height - 25, width, 25);
-                            
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = 'bold 14px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(unitData.name, x + width/2, y + height - 12.5);
-                        }
-                        
-                        resolve();
-                    } catch (error) {
-                        console.warn('이미지 그리기 실패:', imageUrl);
-                        resolve(); // 실패해도 계속 진행
-                    }
-                };
-                
-                img.onerror = function() {
-                    console.warn('이미지 로드 실패:', imageUrl);
-                    // 이미지 로드 실패 시 대체 텍스트
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('?', x + width/2, y + height/2);
-                    resolve();
-                };
-                
-                img.src = imageUrl;
-            });
-        }
-
-        // URL에서 공유 데이터 로드
-        function loadFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const shareData = urlParams.get('share');
-            
-            if (shareData) {
-                try {
-                    // URL Safe Base64 디코딩
-                    const decodedData = decodeShareData(shareData);
-                    const config = JSON.parse(decodedData);
-                    
-                    console.log('공유 링크에서 불러온 데이터:', config);
-                    
-                    // 맵 변경
-                    const mapId = config.m || config.mapId; // 축약형과 기존형 모두 지원
-                    if (mapId && mapPatterns[mapId]) {
-                        currentMapId = mapId;
-                        mapPattern = mapPatterns[currentMapId].pattern;
-                        
-                        // 맵 버튼 업데이트
-                        document.querySelectorAll('.map-btn').forEach(btn => {
-                            btn.classList.remove('active');
-                            if (btn.dataset.map === currentMapId) {
-                                btn.classList.add('active');
-                            }
-                        });
-                    }
-                    
-                    // 유닛 배치 데이터 복원
-                    const units = config.u || config.units; // 축약형과 기존형 모두 지원
-                    if (units) {
-                        // 축약된 데이터를 원래 형태로 복원
-                        Object.entries(units).forEach(([position, unitData]) => {
-                            let fullUnitData;
-                            
-                            if (unitData.i) {
-                                // 축약된 형태 (ID만 있는 경우)
-                                const unit = sampleUnits.find(u => u.id === unitData.i);
-                                if (unit) {
-                                    fullUnitData = unit;
-                                }
-                            } else {
-                                // 기존 형태 (전체 데이터)
-                                fullUnitData = unitData;
-                            }
-                            
-                            if (fullUnitData) {
-                                mapState[position] = fullUnitData;
-                            }
-                        });
-                        
-                        // 페이지 로드 후 유닛 배치 (약간의 지연)
-                        setTimeout(() => {
-                            Object.entries(mapState).forEach(([position, unitData]) => {
-                                const [row, col] = position.split('-').map(Number);
-                                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-                                
-                                if (cell && cell.classList.contains('placement-cell')) {
-                                    const img = document.createElement('img');
-                                    img.src = unitData.url;
-                                    img.alt = unitData.name;
-                                    img.title = unitData.name;
-                                    img.className = 'unit-image';
-                                    
-                                    cell.appendChild(img);
-                                    cell.classList.add('occupied');
-                                }
-                            });
-                            
-                            // 성공 메시지
-                            const mapName = mapPatterns[currentMapId]?.name || '알 수 없는 맵';
-                            const unitCount = Object.keys(mapState).length;
-                            alert(`공유 링크에서 배치도를 불러왔습니다! 🎉\n맵: ${mapName}\n유닛 수: ${unitCount}개`);
-                        }, 100);
-                    }
-                    
-                    // URL 정리 (뒤로가기 히스토리에 영향 없이)
-                    if (window.history && window.history.replaceState) {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
-                    
-                } catch (error) {
-                    console.error('공유 링크 데이터 파싱 오류:', error);
-                    alert('공유 링크가 올바르지 않습니다. 🚫');
-                }
-            }
-        }
-
-        // 안전한 인코딩/디코딩 함수들
-        function encodeShareData(data) {
-            try {
-                // 한글 문자를 안전하게 처리하기 위해 encodeURIComponent 사용
-                const jsonString = JSON.stringify(data);
-                const encoded = encodeURIComponent(jsonString);
-                // Base64 인코딩 (URL Safe)
-                return btoa(encoded).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-            } catch (error) {
-                throw new Error('데이터 인코딩 실패: ' + error.message);
-            }
-        }
-
-        function decodeShareData(encodedData) {
-            try {
-                // URL Safe Base64 디코딩
-                let b64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
-                // 패딩 추가
-                while (b64.length % 4) {
-                    b64 += '=';
-                }
-                const decoded = atob(b64);
-                return decodeURIComponent(decoded);
-            } catch (error) {
-                throw new Error('데이터 디코딩 실패: ' + error.message);
-            }
-        }
-
-        // 공유 링크 생성 (초간소화 버전)
-        function generateShareLink() {
-            if (Object.keys(mapState).length === 0) {
-                alert('배치된 유닛이 없습니다. 유닛을 배치한 후 공유해주세요! 🛡️');
-                return;
-            }
-            
-            try {
-                // 초간소화 인코딩
-                const compactData = encodeShareDataCompact(currentMapId, mapState);
-                
-                // 공유 URL 생성 (매우 짧음)
-                const baseUrl = window.location.origin + window.location.pathname;
-                const shareUrl = `${baseUrl}?c=${compactData}`;
-                
-                console.log('간소화된 공유 링크:', shareUrl);
-                console.log('데이터 길이:', compactData.length, '문자');
-                
-                // 클립보드에 복사
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(shareUrl).then(() => {
-                        const mapName = mapPatterns[currentMapId].name;
-                        const unitCount = Object.keys(mapState).length;
-                        alert(`초간소화 공유 링크가 클립보드에 복사되었습니다! 📋\n\n맵: ${mapName}\n유닛 수: ${unitCount}개\n링크 길이: ${shareUrl.length}자\n\n링크를 붙여넣기하여 공유하세요!`);
-                    }).catch(() => {
-                        showShareUrlFallback(shareUrl);
-                    });
-                } else {
-                    showShareUrlFallback(shareUrl);
-                }
-                
-                // 햅틱 피드백
-                if (navigator.vibrate) {
-                    navigator.vibrate([50, 100, 50]);
-                }
-                
-            } catch (error) {
-                console.error('공유 링크 생성 오류:', error);
-                alert('공유 링크 생성 중 오류가 발생했습니다: ' + error.message);
-            }
-        }
-
-        // 공유 URL 수동 복사 (Fallback)
-        function showShareUrlFallback(shareUrl) {
-            const mapName = mapPatterns[currentMapId].name;
-            const unitCount = Object.keys(mapState).length;
-            
-            // 임시 텍스트 영역 생성하여 복사
-            const textArea = document.createElement('textarea');
-            textArea.value = shareUrl;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-9999px';
-            document.body.appendChild(textArea);
-            textArea.select();
-            
-            try {
-                document.execCommand('copy');
-                alert(`공유 링크가 복사되었습니다! 📋\n\n맵: ${mapName}\n유닛 수: ${unitCount}개\n\n링크를 붙여넣기하여 공유하세요!`);
-            } catch (err) {
-                // 복사도 실패한 경우 URL 표시
-                prompt('공유 링크입니다. 복사해서 공유하세요:', shareUrl);
-            }
-            
-            document.body.removeChild(textArea);
-        }
-
-        // 이미지 내보내기 기능
-        async function exportAsImage() {
-            try {
-                // 캔버스 생성
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // 캔버스 크기 설정 (고해상도)
-                const cellSize = 120;
-                const padding = 40;
-                const titleHeight = 80;
-                const gridWidth = 7 * cellSize;
-                const gridHeight = 5 * cellSize;
-                
-                canvas.width = gridWidth + (padding * 2);
-                canvas.height = gridHeight + (padding * 2) + titleHeight;
-                
-                // 배경 그리기
-                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                gradient.addColorStop(0, '#1a1a2e');
-                gradient.addColorStop(0.5, '#16213e');
-                gradient.addColorStop(1, '#0f3460');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // 제목 그리기
-                ctx.fillStyle = '#4ecdc4';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('협동 타워 디펜스 유닛 배치', canvas.width / 2, 35);
-                
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '16px Arial';
-                ctx.fillText('by 압살맨', canvas.width / 2, 60);
-                
-                // 맵 그리드 그리기
-                const startX = padding;
-                const startY = titleHeight + padding;
-                
-                for (let row = 0; row < mapPattern.length; row++) {
-                    for (let col = 0; col < mapPattern[row].length; col++) {
-                        const x = startX + (col * cellSize);
-                        const y = startY + (row * cellSize);
-                        
-                        // 셀 배경 그리기
-                        ctx.strokeStyle = '#4ecdc4';
-                        ctx.lineWidth = 2;
-                        
-                        if (mapPattern[row][col] === 'X') {
-                            // 경로 셀
-                            const pathGradient = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
-                            pathGradient.addColorStop(0, '#ff6b6b');
-                            pathGradient.addColorStop(1, '#ff8e53');
-                            ctx.fillStyle = pathGradient;
-                            ctx.fillRect(x, y, cellSize, cellSize);
-                            ctx.strokeRect(x, y, cellSize, cellSize);
-                            
-                            // 경로 아이콘
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = '32px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText('🛤️', x + cellSize/2, y + cellSize/2);
-                        } else {
-                            // 배치 가능 셀
-                            ctx.fillStyle = 'rgba(78, 205, 196, 0.2)';
-                            ctx.fillRect(x, y, cellSize, cellSize);
-                            ctx.setLineDash([5, 5]);
-                            ctx.strokeRect(x, y, cellSize, cellSize);
-                            ctx.setLineDash([]);
-                            
-                            // 유닛이 배치된 경우
-                            const unitData = mapState[`${row}-${col}`];
-                            if (unitData) {
-                                // 배치된 셀 배경
-                                ctx.fillStyle = 'rgba(78, 205, 196, 0.6)';
-                                ctx.fillRect(x, y, cellSize, cellSize);
-                                ctx.strokeStyle = '#4ecdc4';
-                                ctx.strokeRect(x, y, cellSize, cellSize);
-                                
-                                // 유닛 이미지 로드 및 그리기
-                                await drawUnitImage(ctx, unitData.url, x + 10, y + 10, cellSize - 20, cellSize - 20);
-                            }
-                        }
-                    }
-                }
-                
-                // 현재 날짜/시간 추가
-                ctx.fillStyle = '#cccccc';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'right';
-                ctx.fillText(new Date().toLocaleString(), canvas.width - 10, canvas.height - 10);
-                
-                // 이미지로 변환하여 다운로드
-                const link = document.createElement('a');
-                link.download = `tower_defense_map_${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 
