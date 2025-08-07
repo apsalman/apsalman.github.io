@@ -292,6 +292,11 @@
             color: white;
         }
 
+        .btn-share {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
         .btn-delete {
             background: linear-gradient(45deg, #e74c3c, #c0392b);
             color: white;
@@ -425,6 +430,7 @@
                     <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadConfiguration(event)">
                     <button class="btn btn-load" onclick="document.getElementById('fileInput').click()">📁 설정 불러오기</button>
                     <button class="btn btn-image" onclick="exportAsImage()">🖼️ 이미지 저장</button>
+                    <button class="btn btn-share" onclick="generateShareLink()">🔗 링크 공유</button>
                 </div>
             </div>
 
@@ -507,6 +513,9 @@
 
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
+            // URL 파라미터에서 공유 데이터 확인
+            loadFromURL();
+            
             initializeMap();
             initializeUnits();
             initializeModeSelector();
@@ -991,6 +1000,147 @@
                 
                 img.src = imageUrl;
             });
+        }
+
+        // URL에서 공유 데이터 로드
+        function loadFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareData = urlParams.get('share');
+            
+            if (shareData) {
+                try {
+                    // Base64 디코딩
+                    const decodedData = atob(shareData);
+                    const config = JSON.parse(decodedData);
+                    
+                    console.log('공유 링크에서 불러온 데이터:', config);
+                    
+                    // 맵 변경
+                    if (config.mapId && mapPatterns[config.mapId]) {
+                        currentMapId = config.mapId;
+                        mapPattern = mapPatterns[currentMapId].pattern;
+                        
+                        // 맵 버튼 업데이트
+                        document.querySelectorAll('.map-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                            if (btn.dataset.map === currentMapId) {
+                                btn.classList.add('active');
+                            }
+                        });
+                    }
+                    
+                    // 유닛 배치 데이터 로드
+                    if (config.units) {
+                        mapState = { ...config.units };
+                        
+                        // 페이지 로드 후 유닛 배치 (약간의 지연)
+                        setTimeout(() => {
+                            Object.entries(config.units).forEach(([position, unitData]) => {
+                                const [row, col] = position.split('-').map(Number);
+                                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                                
+                                if (cell && cell.classList.contains('placement-cell')) {
+                                    const img = document.createElement('img');
+                                    img.src = unitData.url;
+                                    img.alt = unitData.name;
+                                    img.title = unitData.name;
+                                    img.className = 'unit-image';
+                                    
+                                    cell.appendChild(img);
+                                    cell.classList.add('occupied');
+                                }
+                            });
+                            
+                            // 성공 메시지
+                            const mapName = mapPatterns[currentMapId]?.name || '알 수 없는 맵';
+                            const unitCount = Object.keys(config.units).length;
+                            alert(`공유 링크에서 배치도를 불러왔습니다! 🎉\n맵: ${mapName}\n유닛 수: ${unitCount}개`);
+                        }, 100);
+                    }
+                    
+                    // URL 정리 (뒤로가기 히스토리에 영향 없이)
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                    
+                } catch (error) {
+                    console.error('공유 링크 데이터 파싱 오류:', error);
+                    alert('공유 링크가 올바르지 않습니다. 🚫');
+                }
+            }
+        }
+
+        // 공유 링크 생성
+        function generateShareLink() {
+            if (Object.keys(mapState).length === 0) {
+                alert('배치된 유닛이 없습니다. 유닛을 배치한 후 공유해주세요! 🛡️');
+                return;
+            }
+            
+            try {
+                // 공유할 데이터 구성
+                const shareData = {
+                    mapId: currentMapId,
+                    units: mapState,
+                    timestamp: Date.now()
+                };
+                
+                // JSON을 Base64로 인코딩
+                const jsonString = JSON.stringify(shareData);
+                const encodedData = btoa(jsonString);
+                
+                // 공유 URL 생성
+                const baseUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${baseUrl}?share=${encodedData}`;
+                
+                // 클립보드에 복사
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        const mapName = mapPatterns[currentMapId].name;
+                        const unitCount = Object.keys(mapState).length;
+                        alert(`공유 링크가 클립보드에 복사되었습니다! 📋\n\n맵: ${mapName}\n유닛 수: ${unitCount}개\n\n링크를 붙여넣기하여 공유하세요!`);
+                    }).catch(() => {
+                        // Fallback: 수동 복사
+                        showShareUrlFallback(shareUrl);
+                    });
+                } else {
+                    // Fallback: 수동 복사
+                    showShareUrlFallback(shareUrl);
+                }
+                
+                // 햅틱 피드백
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 100, 50]);
+                }
+                
+            } catch (error) {
+                console.error('공유 링크 생성 오류:', error);
+                alert('공유 링크 생성 중 오류가 발생했습니다. 🚫');
+            }
+        }
+
+        // 공유 URL 수동 복사 (Fallback)
+        function showShareUrlFallback(shareUrl) {
+            const mapName = mapPatterns[currentMapId].name;
+            const unitCount = Object.keys(mapState).length;
+            
+            // 임시 텍스트 영역 생성하여 복사
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert(`공유 링크가 복사되었습니다! 📋\n\n맵: ${mapName}\n유닛 수: ${unitCount}개\n\n링크를 붙여넣기하여 공유하세요!`);
+            } catch (err) {
+                // 복사도 실패한 경우 URL 표시
+                prompt('공유 링크입니다. 복사해서 공유하세요:', shareUrl);
+            }
+            
+            document.body.removeChild(textArea);
         }
 
         // 이미지 내보내기 기능
