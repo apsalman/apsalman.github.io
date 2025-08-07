@@ -606,16 +606,70 @@
 
         /* 모바일에서 배치된 유닛 섹션 조정 */
         @media (max-width: 767px) {
-            .deployed-units-section {
-                order: 3;
+            body {
+                height: auto;
+                overflow: auto;
             }
 
-            .deployed-units-container {
-                padding: 10px;
+            .container {
+                height: auto;
+            }
+
+            .main-content {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+                overflow: visible;
+            }
+
+            .map-section {
+                order: 1;
+                width: 100%;
+                height: auto;
+            }
+
+            .units-section {
+                order: 2;
+                width: 100%;
+                height: auto;
+                overflow: visible;
+            }
+
+            .deployed-units-section {
+                order: 3;
+                width: 100%;
+                margin-top: 0;
+                max-height: none;
+                overflow: visible;
+            }
+
+            .map-container, .units-container, .deployed-units-container {
+                width: 100%;
+            }
+
+            .map-grid {
+                height: auto;
+                min-height: auto;
+                aspect-ratio: 7/5;
+            }
+
+            .map-grid.map1 {
+                aspect-ratio: 7/5;
+            }
+
+            .map-grid.map2 {
+                aspect-ratio: 7/7;
+            }
+
+            .units-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                gap: 8px;
+                overflow: visible;
             }
 
             .deployed-units-grid {
                 gap: 6px;
+                min-height: 50px;
             }
 
             .deployed-unit-item {
@@ -639,6 +693,19 @@
             .total-units-count {
                 font-size: 11px;
                 padding: 2px 6px;
+            }
+
+            .unit-slot-name {
+                font-size: 9px;
+            }
+
+            .empty-deployed-message {
+                margin: 15px 0;
+                font-size: 12px;
+            }
+
+            .grid-cell {
+                min-height: 50px;
             }
         }
     </style>
