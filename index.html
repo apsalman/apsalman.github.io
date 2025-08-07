@@ -46,6 +46,33 @@
             margin-bottom: 20px;
         }
 
+        .map-selector {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .map-btn {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .map-btn.active {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .map-btn:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ccc;
+        }
+
         .mode-btn {
             padding: 8px 16px;
             margin: 0 5px;
@@ -87,12 +114,21 @@
 
         .map-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: repeat(5, 1fr);
             gap: 2px;
             margin: 0 auto;
             max-width: 420px;
+        }
+
+        .map-grid.map1 {
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(5, 1fr);
             aspect-ratio: 7/5;
+        }
+
+        .map-grid.map2 {
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            aspect-ratio: 7/7;
         }
 
         .grid-cell {
@@ -310,9 +346,17 @@
             }
             
             .map-grid {
+                max-width: none;
+            }
+            
+            .map-grid.map1 {
                 grid-template-columns: repeat(7, 60px);
                 grid-template-rows: repeat(5, 60px);
-                max-width: none;
+            }
+            
+            .map-grid.map2 {
+                grid-template-columns: repeat(7, 60px);
+                grid-template-rows: repeat(7, 60px);
             }
             
             .grid-cell {
@@ -329,6 +373,11 @@
                 font-size: 14px;
             }
             
+            .map-btn {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+
             .mode-btn {
                 padding: 10px 20px;
                 font-size: 16px;
@@ -346,6 +395,11 @@
         <div class="header">
             <h1>협동 타워 디펜스 유닛 배치 도구</h1>
             <p>by 압살맨</p>
+        </div>
+
+        <div class="map-selector">
+            <button class="map-btn active" data-map="map1">🏰 협동전, 마왕성</button>
+            <button class="map-btn" data-map="map2">🗼 인간의 탑</button>
         </div>
 
         <div class="mode-selector">
@@ -392,13 +446,33 @@
 
     <script>
         // 맵 패턴 정의 (X: 몬스터 통로, O: 유닛 배치 가능)
-        const mapPattern = [
-            ['X','O','O','O','O','O','X'],
-            ['X','X','X','O','X','X','X'],
-            ['O','O','X','O','X','O','O'],
-            ['O','O','X','O','X','O','O'],
-            ['O','O','X','X','X','O','O']
-        ];
+        const mapPatterns = {
+            'map1': {
+                name: '협동전, 마왕성',
+                pattern: [
+                    ['X','O','O','O','O','O','X'],
+                    ['X','X','X','O','X','X','X'],
+                    ['O','O','X','O','X','O','O'],
+                    ['O','O','X','O','X','O','O'],
+                    ['O','O','X','X','X','O','O']
+                ]
+            },
+            'map2': {
+                name: '인간의 탑',
+                pattern: [
+                    ['X','O','X','X','X','O','X'],
+                    ['O','O','X','O','X','O','O'],
+                    ['X','X','X','O','X','X','X'],
+                    ['X','O','O','O','O','O','X'],
+                    ['X','X','X','O','X','X','X'],
+                    ['O','O','X','O','X','O','O'],
+                    ['X','O','X','X','X','O','X']
+                ]
+            }
+        };
+
+        let currentMapId = 'map1';
+        let mapPattern = mapPatterns[currentMapId].pattern;
 
         // GitHub Pages에서 호스팅되는 유닛 이미지들
         const GITHUB_PAGES = 'https://apsalman.github.io';
@@ -436,10 +510,45 @@
             initializeMap();
             initializeUnits();
             initializeModeSelector();
+            initializeMapSelector();
             
             // 터치 이벤트를 위한 설정
             document.addEventListener('touchstart', function() {}, { passive: true });
         });
+
+        function initializeMapSelector() {
+            const mapButtons = document.querySelectorAll('.map-btn');
+            mapButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (this.dataset.map === currentMapId) return;
+                    
+                    // 맵 변경 확인
+                    if (Object.keys(mapState).length > 0) {
+                        if (!confirm('맵을 변경하면 현재 배치된 유닛들이 모두 삭제됩니다. 계속하시겠습니까?')) {
+                            return;
+                        }
+                    }
+                    
+                    mapButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    currentMapId = this.dataset.map;
+                    mapPattern = mapPatterns[currentMapId].pattern;
+                    
+                    // 맵 상태 초기화
+                    mapState = {};
+                    clearSelection();
+                    
+                    // 맵 다시 그리기
+                    initializeMap();
+                    
+                    // 햅틱 피드백
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                });
+            });
+        }
 
         function initializeModeSelector() {
             const modeButtons = document.querySelectorAll('.mode-btn');
@@ -472,6 +581,9 @@
         function initializeMap() {
             const mapGrid = document.getElementById('mapGrid');
             mapGrid.innerHTML = '';
+            
+            // 맵 그리드 클래스 업데이트
+            mapGrid.className = `map-grid ${currentMapId}`;
 
             mapPattern.forEach((row, rowIndex) => {
                 row.forEach((cell, colIndex) => {
@@ -634,10 +746,12 @@
 
         function saveConfiguration() {
             const config = {
+                mapId: currentMapId,
+                mapName: mapPatterns[currentMapId].name,
                 mapPattern: mapPattern,
                 units: mapState,
                 timestamp: new Date().toISOString(),
-                version: '1.0'
+                version: '1.1'
             };
             
             const dataStr = JSON.stringify(config, null, 2);
@@ -645,7 +759,7 @@
             
             const link = document.createElement('a');
             link.href = URL.createObjectURL(dataBlob);
-            link.download = `tower_defense_config_${Date.now()}.json`;
+            link.download = `tower_defense_${currentMapId}_config_${Date.now()}.json`;
             link.click();
             
             alert('설정이 저장되었습니다! 🎉');
@@ -660,18 +774,43 @@
                 try {
                     const config = JSON.parse(e.target.result);
                     
-                    if (!config.units || !config.mapPattern) {
+                    if (!config.units) {
                         throw new Error('잘못된 설정 파일입니다.');
                     }
 
-                    if (JSON.stringify(config.mapPattern) !== JSON.stringify(mapPattern)) {
-                        if (!confirm('이 설정 파일은 다른 맵 패턴을 사용합니다. 계속 불러오시겠습니까?')) {
+                    // 맵 호환성 검사
+                    const configMapId = config.mapId || 'map1';
+                    if (!mapPatterns[configMapId]) {
+                        alert(`지원하지 않는 맵입니다: ${config.mapName || configMapId}`);
+                        return;
+                    }
+
+                    // 맵 패턴 검사
+                    if (config.mapPattern && JSON.stringify(config.mapPattern) !== JSON.stringify(mapPatterns[configMapId].pattern)) {
+                        if (!confirm('이 설정 파일은 다른 맵 구조를 사용합니다. 계속 불러오시겠습니까?')) {
                             return;
                         }
                     }
 
+                    // 맵 변경
+                    if (configMapId !== currentMapId) {
+                        // 맵 버튼 업데이트
+                        document.querySelectorAll('.map-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                            if (btn.dataset.map === configMapId) {
+                                btn.classList.add('active');
+                            }
+                        });
+                        
+                        currentMapId = configMapId;
+                        mapPattern = mapPatterns[currentMapId].pattern;
+                        initializeMap();
+                    }
+
+                    // 기존 맵 초기화
                     clearMap();
 
+                    // 설정된 유닛들 배치
                     Object.entries(config.units).forEach(([position, unitData]) => {
                         const [row, col] = position.split('-').map(Number);
                         const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
@@ -690,7 +829,7 @@
 
                     mapState = { ...config.units };
                     
-                    alert(`설정을 성공적으로 불러왔습니다! 🎉\n저장 시간: ${new Date(config.timestamp).toLocaleString()}`);
+                    alert(`설정을 성공적으로 불러왔습니다! 🎉\n맵: ${mapPatterns[currentMapId].name}\n저장 시간: ${new Date(config.timestamp).toLocaleString()}`);
                     
                 } catch (error) {
                     alert('설정 파일을 읽는 중 오류가 발생했습니다: ' + error.message);
@@ -713,7 +852,7 @@
                 const padding = 40;
                 const titleHeight = 80;
                 const gridWidth = 7 * cellSize;
-                const gridHeight = 5 * cellSize;
+                const gridHeight = mapPattern.length * cellSize;
                 
                 canvas.width = gridWidth + (padding * 2);
                 canvas.height = gridHeight + (padding * 2) + titleHeight;
@@ -730,11 +869,11 @@
                 ctx.fillStyle = '#4ecdc4';
                 ctx.font = 'bold 24px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('협동 타워 디펜스 유닛 배치', canvas.width / 2, 35);
+                ctx.fillText('협동 타워 디펜스 유닛 배치도', canvas.width / 2, 35);
                 
                 ctx.fillStyle = '#ffffff';
                 ctx.font = '16px Arial';
-                ctx.fillText('by 압살맨', canvas.width / 2, 60);
+                ctx.fillText(`${mapPatterns[currentMapId].name}`, canvas.width / 2, 60);
                 
                 // 맵 그리드 그리기
                 const startX = padding;
@@ -796,7 +935,7 @@
                 
                 // 이미지로 변환하여 다운로드
                 const link = document.createElement('a');
-                link.download = `tower_defense_map_${Date.now()}.png`;
+                link.download = `tower_defense_${currentMapId}_map_${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 
