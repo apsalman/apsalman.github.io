@@ -1009,15 +1009,16 @@
             
             if (shareData) {
                 try {
-                    // Base64 디코딩
-                    const decodedData = atob(shareData);
+                    // URL Safe Base64 디코딩
+                    const decodedData = decodeShareData(shareData);
                     const config = JSON.parse(decodedData);
                     
                     console.log('공유 링크에서 불러온 데이터:', config);
                     
                     // 맵 변경
-                    if (config.mapId && mapPatterns[config.mapId]) {
-                        currentMapId = config.mapId;
+                    const mapId = config.m || config.mapId; // 축약형과 기존형 모두 지원
+                    if (mapId && mapPatterns[mapId]) {
+                        currentMapId = mapId;
                         mapPattern = mapPatterns[currentMapId].pattern;
                         
                         // 맵 버튼 업데이트
@@ -1029,13 +1030,32 @@
                         });
                     }
                     
-                    // 유닛 배치 데이터 로드
-                    if (config.units) {
-                        mapState = { ...config.units };
+                    // 유닛 배치 데이터 복원
+                    const units = config.u || config.units; // 축약형과 기존형 모두 지원
+                    if (units) {
+                        // 축약된 데이터를 원래 형태로 복원
+                        Object.entries(units).forEach(([position, unitData]) => {
+                            let fullUnitData;
+                            
+                            if (unitData.i) {
+                                // 축약된 형태 (ID만 있는 경우)
+                                const unit = sampleUnits.find(u => u.id === unitData.i);
+                                if (unit) {
+                                    fullUnitData = unit;
+                                }
+                            } else {
+                                // 기존 형태 (전체 데이터)
+                                fullUnitData = unitData;
+                            }
+                            
+                            if (fullUnitData) {
+                                mapState[position] = fullUnitData;
+                            }
+                        });
                         
                         // 페이지 로드 후 유닛 배치 (약간의 지연)
                         setTimeout(() => {
-                            Object.entries(config.units).forEach(([position, unitData]) => {
+                            Object.entries(mapState).forEach(([position, unitData]) => {
                                 const [row, col] = position.split('-').map(Number);
                                 const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
                                 
@@ -1053,7 +1073,7 @@
                             
                             // 성공 메시지
                             const mapName = mapPatterns[currentMapId]?.name || '알 수 없는 맵';
-                            const unitCount = Object.keys(config.units).length;
+                            const unitCount = Object.keys(mapState).length;
                             alert(`공유 링크에서 배치도를 불러왔습니다! 🎉\n맵: ${mapName}\n유닛 수: ${unitCount}개`);
                         }, 100);
                     }
@@ -1070,6 +1090,34 @@
             }
         }
 
+        // 안전한 인코딩/디코딩 함수들
+        function encodeShareData(data) {
+            try {
+                // 한글 문자를 안전하게 처리하기 위해 encodeURIComponent 사용
+                const jsonString = JSON.stringify(data);
+                const encoded = encodeURIComponent(jsonString);
+                // Base64 인코딩 (URL Safe)
+                return btoa(encoded).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+            } catch (error) {
+                throw new Error('데이터 인코딩 실패: ' + error.message);
+            }
+        }
+
+        function decodeShareData(encodedData) {
+            try {
+                // URL Safe Base64 디코딩
+                let b64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
+                // 패딩 추가
+                while (b64.length % 4) {
+                    b64 += '=';
+                }
+                const decoded = atob(b64);
+                return decodeURIComponent(decoded);
+            } catch (error) {
+                throw new Error('데이터 디코딩 실패: ' + error.message);
+            }
+        }
+
         // 공유 링크 생성
         function generateShareLink() {
             if (Object.keys(mapState).length === 0) {
@@ -1078,20 +1126,31 @@
             }
             
             try {
-                // 공유할 데이터 구성
+                // 공유할 데이터 구성 (간소화)
                 const shareData = {
-                    mapId: currentMapId,
-                    units: mapState,
-                    timestamp: Date.now()
+                    m: currentMapId, // 맵 ID 축약
+                    u: {} // 유닛 데이터 축약
                 };
                 
-                // JSON을 Base64로 인코딩
-                const jsonString = JSON.stringify(shareData);
-                const encodedData = btoa(jsonString);
+                // 유닛 데이터 최적화 (용량 절약)
+                Object.entries(mapState).forEach(([position, unitData]) => {
+                    shareData.u[position] = {
+                        i: unitData.id, // ID만 저장 (URL과 name은 복원 가능)
+                    };
+                });
+                
+                // 안전한 인코딩
+                const encodedData = encodeShareData(shareData);
                 
                 // 공유 URL 생성
                 const baseUrl = window.location.origin + window.location.pathname;
                 const shareUrl = `${baseUrl}?share=${encodedData}`;
+                
+                // URL 길이 확인 (브라우저 제한: 보통 2083자)
+                if (shareUrl.length > 2000) {
+                    alert('배치된 유닛이 너무 많아 링크가 길어집니다. 일부 유닛을 제거해보세요. 🚫');
+                    return;
+                }
                 
                 // 클립보드에 복사
                 if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1115,7 +1174,7 @@
                 
             } catch (error) {
                 console.error('공유 링크 생성 오류:', error);
-                alert('공유 링크 생성 중 오류가 발생했습니다. 🚫');
+                alert('공유 링크 생성 중 오류가 발생했습니다: ' + error.message);
             }
         }
 
