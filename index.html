@@ -227,11 +227,13 @@
             border: 2px solid #666;
             border-radius: 8px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             touch-action: manipulation;
             transition: all 0.2s ease;
+            padding: 4px;
         }
 
         .unit-slot:active {
@@ -244,10 +246,23 @@
         }
 
         .unit-slot img {
-            width: 90%;
-            height: 90%;
+            width: 80%;
+            height: 70%;
             border-radius: 4px;
             object-fit: cover;
+            margin-bottom: 2px;
+        }
+
+        .unit-slot-name {
+            font-size: 9px;
+            color: #ffffff;
+            text-align: center;
+            font-weight: bold;
+            line-height: 1.1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
         }
 
         /* 배치된 유닛 표시 섹션 */
@@ -557,8 +572,12 @@
             }
             
             .units-grid {
-                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
                 gap: 12px;
+            }
+
+            .unit-slot-name {
+                font-size: 11px;
             }
 
             .deployed-unit-item {
@@ -1130,13 +1149,18 @@
                 const unitSlot = document.createElement('div');
                 unitSlot.className = 'unit-slot';
                 unitSlot.dataset.unitId = unit.id;
+                unitSlot.title = unit.name;
                 
                 const img = document.createElement('img');
                 img.src = unit.url;
                 img.alt = unit.name;
-                img.title = unit.name;
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'unit-slot-name';
+                nameDiv.textContent = unit.name;
                 
                 unitSlot.appendChild(img);
+                unitSlot.appendChild(nameDiv);
                 unitSlot.addEventListener('click', () => selectUnit(unit));
                 unitSlot.addEventListener('touchend', (e) => {
                     e.preventDefault();
