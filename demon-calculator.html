@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="Te-H1N2kI_klbKmrlHwiiLO7b1m9SlAvQEGOaDwTTc4" />
+    <title>마신석 소모량 계산기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            min-height: 100vh;
+            padding: 15px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #9b59b6, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+
+        .header .author {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
+        }
+
+        .main-content {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+        }
+
+        .section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid transparent;
+        }
+
+        .table-section {
+            border-color: #9b59b6;
+        }
+
+        .calculator-section {
+            border-color: #f39c12;
+        }
+
+        .section h2 {
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.3em;
+        }
+
+        .table-section h2 {
+            color: #9b59b6;
+        }
+
+        .calculator-section h2 {
+            color: #f39c12;
+        }
+
+        /* 소모량 표 스타일 */
+        .consumption-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            font-size: 0.9em;
+            max-width: 600px;
+        }
+
+        .consumption-table th,
+        .consumption-table td {
+            padding: 8px 12px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+
+        .consumption-table th {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+            font-weight: bold;
+        }
+
+        .consumption-table tr:nth-child(even) {
+            background: rgba(155, 89, 182, 0.1);
+        }
+
+        .consumption-table tr:nth-child(odd) {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* 특별한 구간 강조 */
+        .consumption-table tr.highlight-1-5 {
+            background: rgba(255, 107, 107, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-5-10 {
+            background: rgba(78, 205, 196, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-1-10 {
+            background: rgba(255, 193, 7, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-10-15 {
+            background: rgba(52, 152, 219, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-1-15 {
+            background: rgba(230, 126, 34, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-15-21 {
+            background: rgba(46, 204, 113, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-1-21 {
+            background: rgba(231, 76, 60, 0.2) !important;
+        }
+
+        .consumption-table tr.highlight-max {
+            background: rgba(142, 68, 173, 0.3) !important;
+            font-weight: bold;
+        }
+
+        /* 계산기 스타일 */
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #666;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #f39c12;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .result-item {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .result-item.demon-stone {
+            border-color: #9b59b6;
+        }
+
+        .result-item.silver {
+            border-color: #bdc3c7;
+        }
+
+        .result-item h3 {
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        .result-item .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .result-item.demon-stone .value {
+            color: #9b59b6;
+        }
+
+        .result-item.silver .value {
+            color: #bdc3c7;
+        }
+
+        .quick-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .quick-btn {
+            padding: 6px 12px;
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .quick-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quick-btn:active {
+            transform: scale(0.95);
+        }
+
+        .clear-btn {
+            padding: 8px 16px;
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .consumption-table {
+                font-size: 0.8em;
+            }
+
+            .consumption-table th,
+            .consumption-table td {
+                padding: 6px 8px;
+            }
+
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .result-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* 데스크톱에서 좌우 배치 */
+        @media (min-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
+            }
+
+            .section {
+                padding: 25px;
+            }
+        }
+
+        /* 애니메이션 */
+        .result-item.updated {
+            animation: highlight 0.5s ease;
+        }
+
+        @keyframes highlight {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-button">🏠 메인으로 돌아가기</a>
+        
+        <div class="header">
+            <h1>💎 마신석 소모량 계산기</h1>
+            <p class="subtitle">효율적인 업그레이드 계획을 세워보세요</p>
+            <p class="author">by 압살맨</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 소모량 표 섹션 -->
+            <div class="section table-section">
+                <h2>📊 레벨별 소모량 표</h2>
+                <div style="overflow-x: auto;">
+                    <table class="consumption-table">
+                        <thead>
+                            <tr>
+                                <th>데몬 레벨</th>
+                                <th>마신석</th>
+                                <th>실버</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1 → 2</td><td>30</td><td>1K</td></tr>
+                            <tr><td>2 → 3</td><td>70</td><td>2K</td></tr>
+                            <tr><td>3 → 4</td><td>130</td><td>4K</td></tr>
+                            <tr><td>4 → 5</td><td>210</td><td>6K</td></tr>
+                            <tr class="highlight-1-5"><td>1 → 5</td><td>440</td><td>13K</td></tr>
+                            <tr><td>5 → 6</td><td>320</td><td>10K</td></tr>
+                            <tr><td>6 → 7</td><td>460</td><td>14K</td></tr>
+                            <tr><td>7 → 8</td><td>620</td><td>20K</td></tr>
+                            <tr><td>8 → 9</td><td>800</td><td>26K</td></tr>
+                            <tr><td>9 → 10</td><td>1000</td><td>34K</td></tr>
+                            <tr class="highlight-5-10"><td>5 → 10</td><td>3200</td><td>104K</td></tr>
+                            <tr class="highlight-1-10"><td>1 → 10</td><td>3640</td><td>117K</td></tr>
+                            <tr><td>10 → 11</td><td>1230</td><td>42K</td></tr>
+                            <tr><td>11 → 12</td><td>1500</td><td>52K</td></tr>
+                            <tr><td>12 → 13</td><td>1800</td><td>62K</td></tr>
+                            <tr><td>13 → 14</td><td>2130</td><td>72K</td></tr>
+                            <tr><td>14 → 15</td><td>2490</td><td>86K</td></tr>
+                            <tr class="highlight-10-15"><td>10 → 15</td><td>9150</td><td>314K</td></tr>
+                            <tr class="highlight-1-15"><td>1 → 15</td><td>12790</td><td>431K</td></tr>
+                            <tr><td>15 → 16</td><td>2880</td><td>100K</td></tr>
+                            <tr><td>16 → 17</td><td>3300</td><td>120K</td></tr>
+                            <tr><td>17 → 18</td><td>3750</td><td>140K</td></tr>
+                            <tr><td>18 → 19</td><td>4230</td><td>160K</td></tr>
+                            <tr><td>19 → 20</td><td>4740</td><td>180K</td></tr>
+                            <tr class="highlight-max"><td>20 → 21(Max)</td><td>5280</td><td>200K</td></tr>
+                            <tr class="highlight-15-21"><td>15 → 21</td><td>24180</td><td>900K</td></tr>
+                            <tr class="highlight-1-21"><td>1 → 21</td><td>36970</td><td>1.331M</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 계산기 섹션 -->
+            <div class="section calculator-section">
+                <h2>🧮 소모량 계산기</h2>
+                
+                <div class="calculator-grid">
+                    <div class="input-group">
+                        <label for="startLevel">시작 레벨</label>
+                        <input type="number" id="startLevel" min="1" max="21" value="1" placeholder="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="targetLevel">목표 레벨</label>
+                        <input type="number" id="targetLevel" min="1" max="21" value="10" placeholder="10">
+                    </div>
+                </div>
+
+                <div class="quick-buttons">
+                    <button class="quick-btn" onclick="setLevels(1, 5)">1→5</button>
+                    <button class="quick-btn" onclick="setLevels(1, 10)">1→10</button>
+                    <button class="quick-btn" onclick="setLevels(1, 15)">1→15</button>
+                    <button class="quick-btn" onclick="setLevels(1, 21)">1→21</button>
+                    <button class="quick-btn" onclick="setLevels(5, 10)">5→10</button>
+                    <button class="quick-btn" onclick="setLevels(10, 15)">10→15</button>
+                    <button class="quick-btn" onclick="setLevels(15, 21)">15→21</button>
+                </div>
+
+                <button class="clear-btn" onclick="clearInputs()">🗑️ 초기화</button>
+
+                <div class="result-grid" id="resultGrid">
+                    <div class="result-item demon-stone">
+                        <h3>💎 마신석 총 소모량</h3>
+                        <div class="value" id="totalDemonStone">-</div>
+                        <div style="font-size: 0.8em; opacity: 0.7;" id="demonStoneRange">-</div>
+                    </div>
+                    <div class="result-item silver">
+                        <h3>🪙 실버 총 소모량</h3>
+                        <div class="value" id="totalSilver">-</div>
+                        <div style="font-size: 0.8em; opacity: 0.7;" id="silverRange">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 레벨별 소모량 데이터
+        const consumptionData = {
+            demonStone: {
+                1: 0, 2: 30, 3: 100, 4: 230, 5: 440,
+                6: 760, 7: 1220, 8: 1840, 9: 2640, 10: 3640,
+                11: 4870, 12: 6370, 13: 8170, 14: 10300, 15: 12790,
+                16: 15670, 17: 18970, 18: 22720, 19: 26950, 20: 31690, 21: 36970
+            },
+            silver: {
+                1: 0, 2: 1000, 3: 3000, 4: 7000, 5: 13000,
+                6: 23000, 7: 37000, 8: 57000, 9: 83000, 10: 117000,
+                11: 159000, 12: 211000, 13: 273000, 14: 345000, 15: 431000,
+                16: 531000, 17: 651000, 18: 791000, 19: 951000, 20: 1131000, 21: 1331000
+            }
+        };
+
+        // 숫자 포맷팅 함수 (콤마로 천 단위 구분)
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+
+        // 계산 함수
+        function calculate() {
+            const startLevel = parseInt(document.getElementById('startLevel').value) || 1;
+            const targetLevel = parseInt(document.getElementById('targetLevel').value) || 1;
+
+            // 유효성 검사
+            if (startLevel < 1 || startLevel > 21 || targetLevel < 1 || targetLevel > 21) {
+                alert('레벨은 1~21 사이의 값을 입력해주세요.');
+                return;
+            }
+
+            if (startLevel >= targetLevel) {
+                alert('목표 레벨은 시작 레벨보다 높아야 합니다.');
+                return;
+            }
+
+            // 소모량 계산
+            const demonStoneNeeded = consumptionData.demonStone[targetLevel] - consumptionData.demonStone[startLevel];
+            const silverNeeded = consumptionData.silver[targetLevel] - consumptionData.silver[startLevel];
+
+            // 결과 표시
+            document.getElementById('totalDemonStone').textContent = formatNumber(demonStoneNeeded);
+            document.getElementById('totalSilver').textContent = formatNumber(silverNeeded);
+            document.getElementById('demonStoneRange').textContent = `${startLevel} → ${targetLevel}`;
+            document.getElementById('silverRange').textContent = `${startLevel} → ${targetLevel}`;
+
+            // 애니메이션 효과
+            const resultItems = document.querySelectorAll('.result-item');
+            resultItems.forEach(item => {
+                item.classList.add('updated');
+                setTimeout(() => item.classList.remove('updated'), 500);
+            });
+
+            // 햅틱 피드백
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        }
+
+        // 빠른 설정 함수
+        function setLevels(start, target) {
+            document.getElementById('startLevel').value = start;
+            document.getElementById('targetLevel').value = target;
+            calculate();
+        }
+
+        // 입력 초기화 함수
+        function clearInputs() {
+            document.getElementById('startLevel').value = 1;
+            document.getElementById('targetLevel').value = 10;
+            calculate();
+        }
+
+        // 이벤트 리스너 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            // 초기 계산
+            calculate();
+
+            // 입력 필드 이벤트 리스너
+            document.getElementById('startLevel').addEventListener('input', calculate);
+            document.getElementById('targetLevel').addEventListener('input', calculate);
+
+            // 엔터 키 이벤트
+            document.getElementById('startLevel').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('targetLevel').focus();
+                }
+            });
+
+            document.getElementById('targetLevel').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    calculate();
+                    this.blur();
+                }
+            });
+
+            // 페이지 로드 애니메이션
+            const sections = document.querySelectorAll('.section');
+            sections.forEach((section, index) => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(30px)';
+                
+                setTimeout(() => {
+                    section.style.transition = 'all 0.6s ease';
+                    section.style.opacity = '1';
+                    section.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+
+        // 터치 피드백
+        document.querySelectorAll('.quick-btn, .clear-btn').forEach(btn => {
+            btn.addEventListener('touchstart', function() {
+                if (navigator.vibrate) {
+                    navigator.vibrate(30);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
