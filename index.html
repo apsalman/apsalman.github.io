@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="Te-H1N2kI_klbKmrlHwiiLO7b1m9SlAvQEGOaDwTTc4" />
+    <title>협동 타워 디펜스 도구모음</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+
+        .author {
+            font-size: 1em;
+            color: #999;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .tool-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid transparent;
+            border-radius: 20px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .tool-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-10px);
+            border-color: #4ecdc4;
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+        }
+
+        .tool-card.placement {
+            border-color: #4ecdc4;
+        }
+
+        .tool-card.placement:hover {
+            border-color: #ff6b6b;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .tool-card.calculator {
+            border-color: #9b59b6;
+        }
+
+        .tool-card.calculator:hover {
+            border-color: #f39c12;
+            box-shadow: 0 10px 30px rgba(243, 156, 18, 0.3);
+        }
+
+        .tool-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .tool-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .calculator .tool-title {
+            background: linear-gradient(45deg, #9b59b6, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tool-description {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .tool-features {
+            list-style: none;
+            text-align: left;
+        }
+
+        .tool-features li {
+            padding: 5px 0;
+            color: #bbb;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .tool-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        .calculator .tool-features li::before {
+            color: #f39c12;
+        }
+
+        .footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .tool-card {
+                padding: 25px;
+            }
+
+            .tool-icon {
+                font-size: 3em;
+            }
+
+            .tool-title {
+                font-size: 1.5em;
+            }
+
+            .tool-description {
+                font-size: 1em;
+            }
+        }
+
+        /* 터치 디바이스 최적화 */
+        @media (hover: none) and (pointer: coarse) {
+            .tool-card:active {
+                transform: scale(0.98);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏰 협동 타워 디펜스 도구모음</h1>
+            <p>유닛 배치와 업그레이드 계획을 위한 필수 도구들</p>
+            <div class="author">by 압살맨</div>
+        </div>
+
+        <div class="tools-grid">
+            <a href="unit-placement.html" class="tool-card placement">
+                <span class="tool-icon">🗺️</span>
+                <div class="tool-title">유닛 배치 도구</div>
+                <div class="tool-description">
+                    협동전과 인간의 탑 맵에서 유닛을 배치하고 전략을 세워보세요
+                </div>
+                <ul class="tool-features">
+                    <li>2가지 맵 지원 (협동전, 인간의 탑)</li>
+                    <li>20개 유닛 라이브러리</li>
+                    <li>배치/삭제 모드</li>
+                    <li>설정 저장/불러오기</li>
+                    <li>이미지 내보내기</li>
+                    <li>공유 링크 생성</li>
+                </ul>
+            </a>
+
+            <a href="demon-calculator.html" class="tool-card calculator">
+                <span class="tool-icon">💎</span>
+                <div class="tool-title">마신석 계산기</div>
+                <div class="tool-description">
+                    마신석과 실버 소모량을 계산하여 효율적인 업그레이드를 계획하세요
+                </div>
+                <ul class="tool-features">
+                    <li>레벨별 소모량 표</li>
+                    <li>목표 레벨 계산</li>
+                    <li>구간별 소모량</li>
+                    <li>총 소모량 계산</li>
+                    <li>실버 소모량 포함</li>
+                    <li>즉시 계산 결과</li>
+                </ul>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>🎮 협동 타워 디펜스를 더 재미있게 플레이하세요!</p>
+            <p>문의사항이나 개선사항이 있으시면 언제든 연락주세요.</p>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 애니메이션
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.tool-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(50px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+
+        // 터치 피드백
+        document.querySelectorAll('.tool-card').forEach(card => {
+            card.addEventListener('touchstart', function() {
+                if (navigator.vibrate) {
+                    navigator.vibrate(30);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
