@@ -9,19 +9,75 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <style>
-        body { background-color: #f8f9fa; padding: 2rem 0; }
-        .container { max-width: 600px; }
-        .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 0.75rem; }
-        .card-header { background-color: #0d6efd; color: white; font-weight: bold; border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem; }
-        #results-card { display: none; }
-        .spinner-border { width: 1.25rem; height: 1.25rem; }
-        .btn { font-weight: 500; }
-        .record-section-title { font-weight: bold; color: #343a40; margin-top: 1.5rem; margin-bottom: 1rem; text-align: center; }
-        .record-card-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
-        .record-card { background-color: #a1887f; color: white; padding: 1rem; border-radius: 0.75rem; text-align: center; min-width: 120px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .record-card .title { font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.5); padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
-        .record-card .value { font-size: 1.8rem; font-weight: bold; color: #ffeb3b; }
-        .record-card .label { font-size: 0.8rem; opacity: 0.9; }
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 0.75rem;
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+        }
+        #results-card {
+            display: none; /* Initially hidden */
+        }
+        .spinner-border {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+        .btn {
+            font-weight: 500;
+        }
+
+        /* 상세 기록 카드 스타일 */
+        .record-section-title {
+            font-weight: bold;
+            color: #343a40;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .record-card-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .record-card {
+            background-color: #a1887f; /* 갈색 배경 */
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            min-width: 120px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .record-card .title {
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .record-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffeb3b; /* 노란색 텍스트 */
+        }
+        .record-card .label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -64,39 +120,35 @@
 
         const gameModeNames = { 0: "보통", 1: "어려움", 2: "지옥" };
         const contentsNames = { 1: "인간의 탑", 2: "신전습격 보통", 3: "신전습격 익스트림", 4: "여름바캉스", 10: "뒤틀린 마왕성 - 보통", 11: "뒤틀린 마왕성 - 어려움", 12: "뒤틀린 마왕성 - 지옥" };
-
-        // ★★★ 추가된 부분: 점수 계산 로직 ★★★
+        
+        // --- 점수 계산 로직 ---
         function sumUpTo(n) {
             return n * (n + 1) / 2;
         }
 
         function calculateTotalScore(data) {
             let totalScore = 0;
-
-            // 1. 난이도별 점수 (클리어 횟수 기준)
             if (data.inGameRecords) {
                 data.inGameRecords.forEach(r => {
                     const clearCount = r.ClearCount || 0;
                     switch (r.GameModeType) {
-                        case 0: totalScore += clearCount * 11; break; // 보통
-                        case 1: totalScore += clearCount * 22; break; // 어려움
-                        case 2: totalScore += clearCount * 33; break; // 지옥
+                        case 0: totalScore += clearCount * 11; break;
+                        case 1: totalScore += clearCount * 22; break;
+                        case 2: totalScore += clearCount * 33; break;
                     }
                 });
             }
-
-            // 2. 콘텐츠별 점수 (최고 기록 기준)
             if (data.contentsRecords) {
                 data.contentsRecords.forEach(r => {
                     const bestRecord = r.BestRecord || 0;
                     switch (r.ContentsType) {
-                        case 1: totalScore += sumUpTo(bestRecord); break; // 인간의 탑
-                        case 2: totalScore += bestRecord * 4; break;   // 신전습격 보통
-                        case 3: totalScore += bestRecord * 7; break;   // 신전습격 익스트림
-                        case 4: totalScore += sumUpTo(bestRecord); break; // 여름 바캉스
-                        case 10: totalScore += bestRecord * 16; break; // 뒤틀린 마왕성 보통
-                        case 11: totalScore += bestRecord * 28; break; // 뒤틀린 마왕성 어려움
-                        case 12: totalScore += bestRecord * 41; break; // 뒤틀린 마왕성 지옥
+                        case 1: totalScore += sumUpTo(bestRecord); break;
+                        case 2: totalScore += bestRecord * 4; break;
+                        case 3: totalScore += bestRecord * 7; break;
+                        case 4: totalScore += sumUpTo(bestRecord); break;
+                        case 10: totalScore += bestRecord * 16; break;
+                        case 11: totalScore += bestRecord * 28; break;
+                        case 12: totalScore += bestRecord * 41; break;
                     }
                 });
             }
@@ -104,19 +156,32 @@
         }
         
         // --- 렌더링 함수 ---
-        function renderInGameRecords(records) { /* 이전과 동일 */ }
-        function renderContentsRecords(records) { /* 이전과 동일 */ }
-        // (가독성을 위해 생략했지만, 실제 코드에는 이 함수들이 존재해야 합니다)
         function renderInGameRecords(records) {
             if (!records || records.length === 0) return '';
             let html = '<h5 class="record-section-title">난이도별 기록</h5><div class="record-card-container">';
-            records.filter(r => r.GameModeType !== 10).sort((a, b) => a.GameModeType - b.GameModeType)
+            records
+                .filter(r => r.GameModeType !== 10)
+                .sort((a, b) => a.GameModeType - b.GameModeType)
                 .forEach(record => {
                     const name = gameModeNames[record.GameModeType] || `모드 ${record.GameModeType}`;
-                    html += `<div class="record-card"><div class="title">${name}</div><div><div class="label">최고 웨이브</div><div class="value">${record.BestRecord}</div></div><div style="margin-top: 0.5rem;"><div class="label">클리어 횟수</div><div class="value" style="font-size: 1.5rem;">${record.ClearCount}</div></div></div>`;
+                    html += `
+                        <div class="record-card">
+                            <div class="title">${name}</div>
+                            <div>
+                                <div class="label">최고 웨이브</div>
+                                <div class="value">${record.BestRecord}</div>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <div class="label">클리어 횟수</div>
+                                <div class="value" style="font-size: 1.5rem;">${record.ClearCount}</div>
+                            </div>
+                        </div>
+                    `;
                 });
-            return html + '</div>';
+            html += '</div>';
+            return html;
         }
+
         function renderContentsRecords(records) {
             if (!records || records.length === 0) return '';
             let html = '<h5 class="record-section-title">콘텐츠 기록</h5><div class="record-card-container">';
@@ -124,25 +189,95 @@
                 const name = contentsNames[record.ContentsType];
                 if (!name) return;
                 let valueLabel = (name === "인간의 탑") ? "가장 높이 도달한 층수" : "최고 기록";
-                html += `<div class="record-card"><div class="title">${name}</div><div><div class="label">${valueLabel}</div><div class="value">${record.BestRecord}</div></div></div>`;
+                html += `
+                    <div class="record-card">
+                        <div class="title">${name}</div>
+                        <div>
+                            <div class="label">${valueLabel}</div>
+                            <div class="value">${record.BestRecord}</div>
+                        </div>
+                    </div>
+                `;
             });
-            return html + '</div>';
+            html += '</div>';
+            return html;
         }
 
         // --- 쿨타임 및 시간 포맷팅 함수 ---
-        function startCooldown(durationInSeconds) { /* 이전과 동일 */ }
-        function checkAndApplyCooldownOnLoad() { /* 이전과 동일 */ }
-        function convertUTCToLocal(utcString) { /* 이전과 동일 */ }
-        function formatTimeAgo(utcString) { /* 이전과 동일 */ }
-        function startCooldown(durationInSeconds){clearInterval(cooldownInterval);searchButton.disabled=!0;let e=durationInSeconds;buttonText.innerText=`${e}초 후 검색 가능`;cooldownInterval=setInterval(()=>{e--;if(e<=0){clearInterval(cooldownInterval);buttonText.innerText="검색";searchButton.disabled=!1;localStorage.removeItem("searchCooldownEndTime")}else buttonText.innerText=`${e}초 후 검색 가능`},1e3)}function checkAndApplyCooldownOnLoad(){const e=localStorage.getItem("searchCooldownEndTime");if(e){const t=Date.now(),o=e-t;if(o>0){const n=Math.ceil(o/1e3);startCooldown(n)}}}function convertUTCToLocal(e){if(!e)return"N/A";const t=new Date(e.replace(" ","T")+"Z");return isNaN(t.getTime())?e:t.toLocaleString(navigator.language,{year:"numeric",month:"long",day:"numeric"})}function formatTimeAgo(e){if(!e)return"N/A";const t=new Date(e.replace(" ","T")+"Z");if(isNaN(t.getTime()))return e;const o=new Date,n=Math.round((o.getTime()-t.getTime())/1e3),r=60,a=3600,i=86400,s=2592e3;return n<r?"방금 전":n<a?`${Math.floor(n/r)}분 전`:n<i?`${Math.floor(n/a)}시간 ${Math.floor(n%a/r)}분 전`:n<s?`${Math.floor(n/i)}일 ${Math.floor(n%i/a)}시간 전`:convertUTCToLocal(e)}
+        function startCooldown(durationInSeconds) {
+            clearInterval(cooldownInterval);
+            searchButton.disabled = true;
+            let secondsLeft = durationInSeconds;
+            buttonText.innerText = `${secondsLeft}초 후 검색 가능`;
+            cooldownInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearInterval(cooldownInterval);
+                    buttonText.innerText = '검색';
+                    searchButton.disabled = false;
+                    localStorage.removeItem('searchCooldownEndTime');
+                } else {
+                    buttonText.innerText = `${secondsLeft}초 후 검색 가능`;
+                }
+            }, 1000);
+        }
+        
+        function checkAndApplyCooldownOnLoad() {
+            const cooldownEndTime = localStorage.getItem('searchCooldownEndTime');
+            if (cooldownEndTime) {
+                const now = Date.now();
+                const remainingMilliseconds = cooldownEndTime - now;
+                if (remainingMilliseconds > 0) {
+                    const remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
+                    startCooldown(remainingSeconds);
+                }
+            }
+        }
+
+        function convertUTCToLocal(utcString) {
+            if (!utcString) return 'N/A';
+            const date = new Date(utcString.replace(' ', 'T') + 'Z');
+            if (isNaN(date.getTime())) return utcString;
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleString(navigator.language, options);
+        }
+        
+        function formatTimeAgo(utcString) {
+            if (!utcString) return 'N/A';
+            const lastSeenDate = new Date(utcString.replace(' ', 'T') + 'Z');
+            if (isNaN(lastSeenDate.getTime())) return utcString;
+            const now = new Date();
+            const elapsedSeconds = Math.round((now.getTime() - lastSeenDate.getTime()) / 1000);
+            const MINUTE = 60, HOUR = 3600, DAY = 86400, MONTH = 2592000;
+
+            if (elapsedSeconds < MINUTE) return '방금 전';
+            if (elapsedSeconds < HOUR) return `${Math.floor(elapsedSeconds / MINUTE)}분 전`;
+            if (elapsedSeconds < DAY) {
+                const hours = Math.floor(elapsedSeconds / HOUR);
+                const minutes = Math.floor((elapsedSeconds % HOUR) / MINUTE);
+                return `${hours}시간 ${minutes}분 전`;
+            }
+            if (elapsedSeconds < MONTH) {
+                const days = Math.floor(elapsedSeconds / DAY);
+                const hours = Math.floor((elapsedSeconds % DAY) / HOUR);
+                return `${days}일 ${hours}시간 전`;
+            }
+            return convertUTCToLocal(utcString);
+        }
 
         // --- 메인 검색 함수 ---
         async function performSearch() {
             if (searchButton.disabled) return;
             const nickname = nicknameInput.value.trim();
-            if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
+            if (!nickname) {
+                alert('닉네임을 입력해주세요.');
+                return;
+            }
             
-            buttonText.classList.add('d-none'); loadingSpinner.classList.remove('d-none'); searchButton.disabled = true;
+            buttonText.classList.add('d-none');
+            loadingSpinner.classList.remove('d-none');
+            searchButton.disabled = true;
+            
             resultsCard.style.display = 'block';
             resultsDiv.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted"><strong>요청을 처리 중입니다...</strong></p></div>`;
 
@@ -154,9 +289,8 @@
                 if (data.error) {
                     resultsDiv.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
                 } else {
-                    // ★★★ 수정된 부분: 점수 계산 및 표시 ★★★
                     const localLastSeen = formatTimeAgo(data.last_seen);
-                    const totalScore = calculateTotalScore(data); // 점수 계산
+                    const totalScore = calculateTotalScore(data);
                     
                     let resultHTML = `
                         <h5 class="card-title text-center mb-3"><strong>${data.nickname || nickname}</strong> 님의 정보</h5>
@@ -182,10 +316,11 @@
                     resultsDiv.innerHTML = resultHTML;
                 }
             } catch (error) {
-                resultsDiv.innerHTML = `<div class="alert alert-danger mb-0">서버와 통신 중 오류. 잠시 후 다시 시도해주세요.</div>`;
+                resultsDiv.innerHTML = `<div class="alert alert-danger mb-0">서버와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</div>`;
                 console.error('Error fetching data:', error);
             } finally {
-                buttonText.classList.remove('d-none'); loadingSpinner.classList.add('d-none');
+                buttonText.classList.remove('d-none');
+                loadingSpinner.classList.add('d-none');
                 const newCooldownEndTime = Date.now() + 60 * 1000;
                 localStorage.setItem('searchCooldownEndTime', newCooldownEndTime);
                 startCooldown(60);
@@ -194,7 +329,11 @@
         
         // --- 이벤트 리스너 ---
         searchButton.addEventListener('click', performSearch);
-        nicknameInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') performSearch(); });
+        nicknameInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
         document.addEventListener('DOMContentLoaded', checkAndApplyCooldownOnLoad);
     </script>
 </body>
