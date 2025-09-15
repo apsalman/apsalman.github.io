@@ -27,7 +27,8 @@
         }
 
         .container {
-            max-width: 800px;
+            /* --- CSS 변경점: 최대 너비 확장 --- */
+            max-width: 1200px; 
             width: 100%;
             text-align: center;
         }
@@ -58,7 +59,8 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            /* --- CSS 변경점: minmax 값 수정으로 반응형 유지 --- */
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 30px;
             margin-top: 40px;
         }
@@ -74,6 +76,9 @@
             color: white;
             position: relative;
             overflow: hidden;
+            display: flex; /* 내부 컨텐츠 정렬을 위해 추가 */
+            flex-direction: column; /* 내부 컨텐츠를 세로로 쌓음 */
+            justify-content: space-between; /* 컨텐츠를 위아래로 분산 */
         }
 
         .tool-card::before {
@@ -94,27 +99,18 @@
 
         .tool-card:hover {
             transform: translateY(-10px);
-            border-color: #4ecdc4;
-            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
         }
 
-        .tool-card.placement {
-            border-color: #4ecdc4;
-        }
+        .tool-card.placement { border-color: #4ecdc4; }
+        .tool-card.placement:hover { border-color: #ff6b6b; box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3); }
 
-        .tool-card.placement:hover {
-            border-color: #ff6b6b;
-            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
-        }
+        .tool-card.calculator { border-color: #9b59b6; }
+        .tool-card.calculator:hover { border-color: #f39c12; box-shadow: 0 10px 30px rgba(243, 156, 18, 0.3); }
 
-        .tool-card.calculator {
-            border-color: #9b59b6;
-        }
-
-        .tool-card.calculator:hover {
-            border-color: #f39c12;
-            box-shadow: 0 10px 30px rgba(243, 156, 18, 0.3);
-        }
+        /* --- CSS 추가: 시뮬레이터 카드 스타일 --- */
+        .tool-card.simulator { border-color: #27ae60; }
+        .tool-card.simulator:hover { border-color: #e67e22; box-shadow: 0 10px 30px rgba(230, 126, 34, 0.3); }
+        /* ------------------------------------ */
 
         .tool-icon {
             font-size: 4em;
@@ -134,10 +130,15 @@
 
         .calculator .tool-title {
             background: linear-gradient(45deg, #9b59b6, #f39c12);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
+
+        /* --- CSS 추가: 시뮬레이터 제목 스타일 --- */
+        .simulator .tool-title {
+             background: linear-gradient(45deg, #27ae60, #e67e22);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        /* ------------------------------------ */
 
         .tool-description {
             font-size: 1.1em;
@@ -149,6 +150,7 @@
         .tool-features {
             list-style: none;
             text-align: left;
+            margin-top: auto; /* 카드 하단에 붙도록 함 */
         }
 
         .tool-features li {
@@ -162,13 +164,15 @@
             content: '✓';
             position: absolute;
             left: 0;
-            color: #4ecdc4;
             font-weight: bold;
         }
 
-        .calculator .tool-features li::before {
-            color: #f39c12;
-        }
+        .placement .tool-features li::before { color: #4ecdc4; }
+        .calculator .tool-features li::before { color: #f39c12; }
+        /* --- CSS 추가: 시뮬레이터 리스트 스타일 --- */
+        .simulator .tool-features li::before { color: #27ae60; }
+        /* -------------------------------------- */
+
 
         .footer {
             margin-top: 60px;
@@ -178,39 +182,23 @@
             font-size: 0.9em;
         }
 
-        /* 모바일 최적화 */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .tools-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .tool-card {
-                padding: 25px;
-            }
-
-            .tool-icon {
-                font-size: 3em;
-            }
-
-            .tool-title {
-                font-size: 1.5em;
-            }
-
-            .tool-description {
-                font-size: 1em;
+        @media (max-width: 1100px) {
+             .tools-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             }
         }
 
-        /* 터치 디바이스 최적화 */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2em; }
+            .tools-grid { grid-template-columns: 1fr; gap: 20px; }
+            .tool-card { padding: 25px; }
+            .tool-icon { font-size: 3em; }
+            .tool-title { font-size: 1.5em; }
+            .tool-description { font-size: 1em; }
+        }
+
         @media (hover: none) and (pointer: coarse) {
-            .tool-card:active {
-                transform: scale(0.98);
-            }
+            .tool-card:active { transform: scale(0.98); }
         }
     </style>
 </head>
@@ -224,10 +212,10 @@
 
         <div class="tools-grid">
             <a href="unit-placement.html" class="tool-card placement">
-                <span class="tool-icon">🗺️</span>
-                <div class="tool-title">유닛 배치 도구</div>
-                <div class="tool-description">
-                    협동전과 인간의 탑 맵에서 유닛을 배치하고 전략을 세워보세요
+                <div>
+                    <span class="tool-icon">🗺️</span>
+                    <div class="tool-title">유닛 배치 도구</div>
+                    <div class="tool-description">협동전과 인간의 탑 맵에서 유닛을 배치하고 전략을 세워보세요</div>
                 </div>
                 <ul class="tool-features">
                     <li>2가지 맵 지원 (협동전, 인간의 탑)</li>
@@ -240,10 +228,10 @@
             </a>
 
             <a href="demon-calculator.html" class="tool-card calculator">
-                <span class="tool-icon">💎</span>
-                <div class="tool-title">마신석 계산기</div>
-                <div class="tool-description">
-                    마신석과 실버 소모량을 계산하여 효율적인 업그레이드를 계획하세요
+                <div>
+                    <span class="tool-icon">💎</span>
+                    <div class="tool-title">마신석 계산기</div>
+                    <div class="tool-description">마신석과 실버 소모량을 계산하여 효율적인 업그레이드를 계획하세요</div>
                 </div>
                 <ul class="tool-features">
                     <li>레벨별 소모량 표</li>
@@ -255,10 +243,13 @@
                 </ul>
             </a>
 
+            <!-- --- HTML 추가: 시뮬레이터 카드 --- -->
             <a href="trait_simulator.html" class="tool-card simulator">
-                <span class="tool-icon">🎲</span>
-                <div class="tool-title">특성 시뮬레이터</div>
-                <div class="tool-description">특성 재설정 비용을 시뮬레이션하여 최적의 전략을 찾아보세요</div>
+                <div>
+                    <span class="tool-icon">🎲</span>
+                    <div class="tool-title">특성 시뮬레이터</div>
+                    <div class="tool-description">특성 재설정 비용을 시뮬레이션하여 최적의 전략을 찾아보세요</div>
+                </div>
                 <ul class="tool-features">
                     <li>일반/고급 재설정</li>
                     <li>잠금 기능 구현</li>
@@ -268,7 +259,7 @@
                     <li>수치 변동 규칙 적용</li>
                 </ul>
             </a>
-            
+            <!-- --------------------------------- -->
         </div>
 
         <div class="footer">
@@ -278,13 +269,11 @@
     </div>
 
     <script>
-        // 페이지 로드 애니메이션
         document.addEventListener('DOMContentLoaded', function() {
             const cards = document.querySelectorAll('.tool-card');
             cards.forEach((card, index) => {
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(50px)';
-                
                 setTimeout(() => {
                     card.style.transition = 'all 0.6s ease';
                     card.style.opacity = '1';
@@ -293,7 +282,6 @@
             });
         });
 
-        // 터치 피드백
         document.querySelectorAll('.tool-card').forEach(card => {
             card.addEventListener('touchstart', function() {
                 if (navigator.vibrate) {
