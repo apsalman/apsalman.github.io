@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="Te-H1N2kI_klbKmrlHwiiLO7b1m9SlAvQEGOaDwTTc4" />
+    <title>특성 시뮬레이터</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #3d3d3d;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+
+        #simulator-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #2e2e2e;
+            border: 4px solid #c8a064;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffdd99;
+            margin-top: 0;
+            font-weight: 700;
+        }
+
+        .trait-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .trait-slot {
+            display: flex;
+            align-items: center;
+            background-color: #555;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 1.0em;
+            border: 1px solid #444;
+        }
+
+        .trait-grade {
+            font-weight: 700;
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            margin-right: 15px;
+            font-size: 1.2em;
+        }
+
+        .trait-text {
+            flex-grow: 1;
+        }
+
+        .lock-button {
+            width: 40px;
+            height: 40px;
+            background-color: #777;
+            border: 1px solid #888;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: 10px;
+            transition: background-color 0.2s;
+        }
+        
+        .lock-button.locked {
+            background-color: #ffc700;
+            border-color: #ffdd55;
+            color: #333;
+        }
+
+        .grade-C { background-color: #CACACA; color: #333; }
+        .grade-B { background-color: #BED369; color: #fff; }
+        .grade-A { background-color: #68AFEB; color: #fff; }
+        .grade-S { background-color: #F28AEF; color: #fff; }
+        .grade-SS { background-color: #FFF361; color: #333; }
+
+        .controls, .stats {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .reroll-button {
+            flex-grow: 1;
+            padding: 15px;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 1.0em;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #normal-reroll-btn { background-color: #a9a9a9; color: #222; }
+        #normal-reroll-btn:hover { background-color: #c0c0c0; }
+
+        #advanced-reroll-btn { background-color: #bf81d9; color: #fff; }
+        #advanced-reroll-btn:hover { background-color: #d39ee8; }
+
+        #reset-btn { background-color: #e67e22; color: #fff; }
+        #reset-btn:hover { background-color: #f39c12; }
+
+        .stat-item {
+            background-color: #3a3a3a;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            flex-grow: 1;
+        }
+        .stat-item h3 { margin: 0 0 5px 0; color: #ffdd99; font-size: 0.9em; font-weight: 400;}
+        .stat-item p { margin: 0; font-size: 1.2em; font-weight: 700;}
+    </style>
+</head>
+<body>
+
+    <div id="simulator-container">
+        <h1>특성 시뮬레이터</h1>
+        <div class="trait-slots" id="trait-slots"></div>
+        <div class="controls">
+            <button class="reroll-button" id="normal-reroll-btn">일반 재설정</button>
+            <button class="reroll-button" id="advanced-reroll-btn">고급 재설정</button>
+            <button class="reroll-button" id="reset-btn">초기화</button>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <h3>소모 실버</h3>
+                <p id="silver-spent">0</p>
+            </div>
+            <div class="stat-item">
+                <h3>소모 가루</h3>
+                <p id="dust-spent">0</p>
+            </div>
+             <div class="stat-item">
+                <h3>총 시도</h3>
+                <p id="reroll-count">0</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const allTraits = [
+        // C 등급 (11개)
+        { name: "[협동] 공격력 10~20% 증가", grade: "C", prob: 4.5455, value_min: 10, value_max: 20, is_unique: false },
+        { name: "[도전] 공격력 10~20% 증가", grade: "C", prob: 4.5455, value_min: 10, value_max: 20, is_unique: false },
+        { name: "[도전] 치명타 확률 1~5% 증가", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+        { name: "[도전] 치명타 데미지 5~15% 증가", grade: "C", prob: 4.5455, value_min: 5, value_max: 15, is_unique: false },
+        { name: "[협동] 치명타 확률 1~5% 증가", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+        { name: "[협동] 치명타 데미지 5~15% 증가", grade: "C", prob: 4.5455, value_min: 5, value_max: 15, is_unique: false },
+        { name: "[협동] 결과 보상 경험치 1~5% 증가", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+        { name: "[협동] 결과 보상 실버 1~5% 증가", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+        { name: "[공용] 시작 골드 1~5 증가", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+        { name: "[공용] 시작 마석 1~5 증가", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+        { name: "[공용] 모든 적 방어력 1~5% 감소", grade: "C", prob: 4.5455, value_min: 1, value_max: 5, is_unique: false },
+
+        // B 등급 (11개)
+        { name: "[협동] 공격력 21~40% 증가", grade: "B", prob: 2.7273, value_min: 21, value_max: 40, is_unique: false },
+        { name: "[도전] 공격력 21~40% 증가", grade: "B", prob: 2.7273, value_min: 21, value_max: 40, is_unique: false },
+        { name: "[도전] 치명타 확률 6~10% 증가", grade: "B", prob: 2.7273, value_min: 6, value_max: 10, is_unique: false },
+        { name: "[도전] 치명타 데미지 16~25% 증가", grade: "B", prob: 2.7273, value_min: 16, value_max: 25, is_unique: false },
+        { name: "[협동] 치명타 확률 6~10% 증가", grade: "B", prob: 2.7273, value_min: 6, value_max: 10, is_unique: false },
+        { name: "[협동] 치명타 데미지 16~25% 증가", grade: "B", prob: 2.7273, value_min: 16, value_max: 25, is_unique: false },
+        { name: "[협동] 결과 보상 경험치 6~9% 증가", grade: "B", prob: 2.7273, value_min: 6, value_max: 9, is_unique: false },
+        { name: "[협동] 결과 보상 실버 6~9% 증가", grade: "B", prob: 2.7273, value_min: 6, value_max: 9, is_unique: false },
+        { name: "[공용] 시작 골드 6~10 증가", grade: "B", prob: 2.7273, value_min: 6, value_max: 10, is_unique: false },
+        { name: "[공용] 시작 마석 6~10 증가", grade: "B", prob: 2.7273, value_min: 6, value_max: 10, is_unique: false },
+        { name: "[공용] 모든 적 방어력 6~10% 감소", grade: "B", prob: 2.7273, value_min: 6, value_max: 10, is_unique: false },
+
+        // A 등급 (11개)
+        { name: "[협동] 공격력 41~60% 증가", grade: "A", prob: 1.3636, value_min: 41, value_max: 60, is_unique: false },
+        { name: "[도전] 공격력 41~60% 증가", grade: "A", prob: 1.3636, value_min: 41, value_max: 60, is_unique: false },
+        { name: "[도전] 치명타 확률 11~13% 증가", grade: "A", prob: 1.3636, value_min: 11, value_max: 13, is_unique: false },
+        { name: "[도전] 치명타 데미지 26~35% 증가", grade: "A", prob: 1.3636, value_min: 26, value_max: 35, is_unique: false },
+        { name: "[협동] 치명타 확률 11~13% 증가", grade: "A", prob: 1.3636, value_min: 11, value_max: 13, is_unique: false },
+        { name: "[협동] 치명타 데미지 26~35% 증가", grade: "A", prob: 1.3636, value_min: 26, value_max: 35, is_unique: false },
+        { name: "[협동] 결과 보상 경험치 10~14% 증가", grade: "A", prob: 1.3636, value_min: 10, value_max: 14, is_unique: false },
+        { name: "[협동] 결과 보상 실버 10~14% 증가", grade: "A", prob: 1.3636, value_min: 10, value_max: 14, is_unique: false },
+        { name: "[공용] 시작 골드 11~13 증가", grade: "A", prob: 1.3636, value_min: 11, value_max: 13, is_unique: false },
+        { name: "[공용] 시작 마석 11~13 증가", grade: "A", prob: 1.3636, value_min: 11, value_max: 13, is_unique: false },
+        { name: "[공용] 모든 적 방어력 11~14% 감소", grade: "A", prob: 1.3636, value_min: 11, value_max: 14, is_unique: false },
+
+        // S 등급 (일반/고급 풀 공통)
+        { name: "[협동] 공격력 71~90% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 71, value_max: 90, is_unique: false },
+        { name: "[도전] 공격력 71~90% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 71, value_max: 90, is_unique: false },
+        { name: "[도전] 치명타 확률 14~17% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 14, value_max: 17, is_unique: false },
+        { name: "[도전] 치명타 데미지 36~45% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 36, value_max: 45, is_unique: false },
+        { name: "[협동] 치명타 확률 14~17% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 14, value_max: 17, is_unique: false },
+        { name: "[협동] 치명타 데미지 36~45% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 36, value_max: 45, is_unique: false },
+        { name: "[협동] 결과 보상 경험치 15~17% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 15, value_max: 17, is_unique: false },
+        { name: "[협동] 결과 보상 실버 15~17% 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 15, value_max: 17, is_unique: false },
+        { name: "[공용] 시작 골드 14~17 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 14, value_max: 17, is_unique: false },
+        { name: "[공용] 시작 마석 14~17 증가", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 14, value_max: 17, is_unique: false },
+        { name: "[공용] 모든 적 방어력 15~17% 감소", grade: "S", prob: 0.3636, adv_prob: 8.1818, value_min: 15, value_max: 17, is_unique: false },
+
+        // SS 등급 (19개)
+        { name: "[협동] 공격력 91~100% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 91, value_max: 100, is_unique: false },
+        { name: "[도전] 공격력 91~100% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 91, value_max: 100, is_unique: false },
+        { name: "[협동] 치명타 확률 18~20% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[도전] 치명타 확률 18~20% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[도전] 치명타 데미지 46~50% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 46, value_max: 50, is_unique: false },
+        { name: "[협동] 치명타 데미지 46~50% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 46, value_max: 50, is_unique: false },
+        { name: "[협동] 결과 보상 경험치 18~20% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[협동] 결과 보상 실버 18~20% 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[공용] 시작 골드 18~20 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[공용] 시작 마석 18~20 증가", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[공용] 모든 적 방어력 18~20% 감소", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 18, value_max: 20, is_unique: false },
+        { name: "[공용] 스테미너 최대치 5 증가 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 5, value_max: 5, is_unique: true },
+        { name: "[공용] 비밀뽑기판 등장 확률 증가 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 5, value_max: 5, is_unique: true },
+        { name: "[협동] 마물 소환 비용 1~5 감소 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 1, value_max: 5, is_unique: true },
+        { name: "[도전] 마물 소환 비용 1~5 감소 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 1, value_max: 5, is_unique: true },
+        { name: "[협동] 마물 교환 비용 20% 감소 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 20, value_max: 20, is_unique: true },
+        { name: "[도전] 마물 교환 비용 20% 감소 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 20, value_max: 20, is_unique: true },
+        { name: "[협동] 채굴 슬라임 고용 비용 6~10% 감소 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 6, value_max: 10, is_unique: true },
+        { name: "[도전] 채굴 슬라임 교환 비용 6~10% 감소 - 유일", grade: "SS", prob: 0.0526, adv_prob: 0.5263, value_min: 6, value_max: 10, is_unique: true },
+    ];
+    
+    const initial_state = {
+        slots: [ { trait: null, locked: false }, { trait: null, locked: false }, { trait: null, locked: false }, { trait: null, locked: false }, { trait: null, locked: false } ],
+        costs: { silver: 0, dust: 0, rerolls: 0 }
+    };
+    let state = JSON.parse(JSON.stringify(initial_state));
+    const costTable = { normal: [5000, 10000, 20000, 40000, 80000], advanced: [20, 40, 60, 80, 100] };
+
+    // --- JavaScript 변경점: 확률 계산 로직 개선 ---
+    function getWeightedRandomTrait(isAdvanced) {
+        const probKey = isAdvanced ? 'adv_prob' : 'prob';
+        const pool = allTraits.filter(trait => trait[probKey] > 0);
+        const totalWeight = pool.reduce((sum, trait) => sum + trait[probKey], 0);
+        let random = Math.random() * totalWeight;
+        for (const trait of pool) {
+            random -= trait[probKey];
+            if (random < 0) return { ...trait };
+        }
+        return { ...pool[pool.length - 1] }; // Fallback
+    }
+
+    function reroll(isAdvanced) {
+        const lockedCount = state.slots.filter(s => s.locked).length;
+        if (lockedCount === 5) return;
+        state.costs.silver += isAdvanced ? 0 : costTable.normal[lockedCount];
+        state.costs.dust += isAdvanced ? costTable.advanced[lockedCount] : 0;
+        state.costs.rerolls++;
+        const unlockedIndices = state.slots.map((s, i) => s.locked ? -1 : i).filter(i => i !== -1);
+        let advancedSlot = -1;
+        if (isAdvanced && unlockedIndices.length > 0) {
+            advancedSlot = unlockedIndices[Math.floor(Math.random() * unlockedIndices.length)];
+        }
+        unlockedIndices.forEach(index => {
+            let newTrait, isUniqueValid = false;
+            while (!isUniqueValid) {
+                newTrait = getWeightedRandomTrait(index === advancedSlot);
+                if (newTrait.is_unique) {
+                    const isDuplicate = state.slots.some((s, i) => i !== index && s.trait?.name === newTrait.name);
+                    if (!isDuplicate) isUniqueValid = true;
+                } else {
+                    isUniqueValid = true;
+                }
+            }
+            const valueRange = newTrait.value_max - newTrait.value_min;
+            const randomValue = newTrait.value_min + Math.floor(Math.random() * (valueRange + 1));
+            const replacementText = newTrait.name.includes('%') ? `${randomValue}%` : `${randomValue}`;
+            newTrait.displayText = newTrait.name.replace(/(\d+~\d+%?|\d+%?)/, replacementText);
+            state.slots[index].trait = newTrait;
+        });
+        render();
+    }
+    
+    function resetSimulator() {
+        state = JSON.parse(JSON.stringify(initial_state));
+        render();
+    }
+
+    const slotsContainer = document.getElementById('trait-slots');
+    function render() {
+        slotsContainer.innerHTML = '';
+        state.slots.forEach((slot, index) => {
+            const slotDiv = document.createElement('div');
+            slotDiv.className = 'trait-slot';
+            const gradeDiv = document.createElement('div');
+            gradeDiv.className = 'trait-grade';
+            const textDiv = document.createElement('div');
+            textDiv.className = 'trait-text';
+            if (slot.trait) {
+                gradeDiv.textContent = slot.trait.grade;
+                gradeDiv.className = 'trait-grade';
+                gradeDiv.classList.add(`grade-${slot.trait.grade}`);
+                textDiv.textContent = slot.trait.displayText;
+            } else {
+                textDiv.textContent = '...';
+            }
+            const lockButton = document.createElement('button');
+            lockButton.className = 'lock-button';
+            lockButton.textContent = '🔒';
+            if (slot.locked) lockButton.classList.add('locked');
+            lockButton.onclick = () => { slot.locked = !slot.locked; render(); };
+            slotDiv.appendChild(gradeDiv);
+            slotDiv.appendChild(textDiv);
+            slotDiv.appendChild(lockButton);
+            slotsContainer.appendChild(slotDiv);
+        });
+        const lockedCount = state.slots.filter(s => s.locked).length;
+        const normalCost = (lockedCount < 5) ? costTable.normal[lockedCount].toLocaleString() : 'MAX';
+        const advancedCost = (lockedCount < 5) ? costTable.advanced[lockedCount].toLocaleString() : 'MAX';
+        document.getElementById('normal-reroll-btn').textContent = `일반 재설정 (${normalCost} 실버)`;
+        document.getElementById('advanced-reroll-btn').textContent = `고급 재설정 (${advancedCost} 가루)`;
+        document.getElementById('silver-spent').textContent = state.costs.silver.toLocaleString();
+        document.getElementById('dust-spent').textContent = state.costs.dust.toLocaleString();
+        document.getElementById('reroll-count').textContent = state.costs.rerolls.toLocaleString();
+    }
+    
+    document.getElementById('normal-reroll-btn').onclick = () => reroll(false);
+    document.getElementById('advanced-reroll-btn').onclick = () => reroll(true);
+    document.getElementById('reset-btn').onclick = resetSimulator;
+
+    resetSimulator();
+    </script>
+</body>
+</html>
